@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X, Search, Bell, MessageCircle, User, Globe } from "lucide-react";
+import { Menu, X, Search, Bell, MessageCircle, User, Globe, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCart } from "@/contexts/CartContext";
 
 const navItems = [
   { label: "Головна", href: "/" },
@@ -15,6 +16,7 @@ const navItems = [
 export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { totalItems } = useCart();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
@@ -57,6 +59,16 @@ export default function Navbar() {
           </Button>
           <Button variant="ghost" size="icon" className="hidden sm:flex">
             <Globe className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="relative hidden sm:flex" asChild>
+            <Link to="/cart">
+              <ShoppingCart className="h-4 w-4" />
+              {totalItems > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {totalItems > 9 ? "9+" : totalItems}
+                </span>
+              )}
+            </Link>
           </Button>
           <Button size="sm" className="hidden sm:flex">
             <User className="mr-1.5 h-4 w-4" />
