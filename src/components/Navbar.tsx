@@ -8,6 +8,7 @@ import { useCart } from "@/contexts/CartContext";
 const navItems = [
   { label: "Головна", href: "/" },
   { label: "Дошка", href: "/board" },
+  { label: "Стрічка", href: "/feed" },
   { label: "Митці", href: "/artists" },
   { label: "Події", href: "/events" },
   { label: "Маркет", href: "/market" },

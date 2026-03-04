@@ -13,6 +13,7 @@ import MarketPage from "./pages/MarketPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
+import FeedPage from "./pages/FeedPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/board" element={<BoardPage />} />
               <Route path="/artists" element={<ArtistsPage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/feed" element={<FeedPage />} />
               <Route path="/market" element={<MarketPage />} />
               <Route path="/market/:id" element={<ProductPage />} />
               <Route path="/cart" element={<CartPage />} />
