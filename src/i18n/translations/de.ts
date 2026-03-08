@@ -384,6 +384,10 @@ const de: Translations = {
     status_promoted: "Top",
     status_sold: "Verkauft",
     status_draft: "Entwurf",
+    analytics: "Analytik",
+    views_week: "Aufrufe pro Woche",
+    sales_dynamics: "Verkaufsdynamik",
+    sales: "Verkäufe",
   },
   messenger: {
     title: "Nachrichten",

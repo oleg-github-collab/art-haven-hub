@@ -22,6 +22,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/context";
+import AnalyticsCharts from "@/components/dashboard/AnalyticsCharts";
 
 /* ── fake artwork data ──────────────────────────────── */
 interface Artwork {
@@ -185,6 +186,15 @@ export default function ArtistDashboardPage() {
           <StatCard label={d.likes} value={stats.likes} icon={Heart} accent="bg-red-500/10 text-red-500" />
           <StatCard label={d.revenue} value={`€${stats.revenue.toLocaleString()}`} icon={Euro} accent="bg-primary/10 text-primary" />
         </div>
+
+        {/* Analytics Charts */}
+        <AnalyticsCharts labels={{
+          analytics: d.analytics,
+          views_week: d.views_week,
+          sales_dynamics: d.sales_dynamics,
+          views: d.views,
+          sales: d.sales,
+        }} />
 
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-2">

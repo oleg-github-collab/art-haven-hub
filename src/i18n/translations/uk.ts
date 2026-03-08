@@ -384,6 +384,10 @@ const uk: Translations = {
     status_promoted: "Топ",
     status_sold: "Продано",
     status_draft: "Чернетка",
+    analytics: "Аналітика",
+    views_week: "Перегляди за тижні",
+    sales_dynamics: "Динаміка продажів",
+    sales: "Продажі",
   },
   messenger: {
     title: "Повідомлення",
