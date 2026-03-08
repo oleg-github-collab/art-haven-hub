@@ -22,6 +22,7 @@ const cardVariants = {
 };
 
 export default function MarketPage() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
