@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Users, Megaphone, Calendar, ShoppingBag, MessageCircle, Video, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/i18n";
 import heroArt from "@/assets/hero-art.jpg";
 
 const fadeUp = {
@@ -12,24 +13,26 @@ const fadeUp = {
   }),
 };
 
-const features = [
-  { icon: Megaphone, title: "Дошка оголошень", desc: "«Можу» та «Хочу» — знайди або запропонуй послуги, інвентар, простір.", link: "/board" },
-  { icon: Users, title: "Нетворкінг", desc: "Зʼєднуйся з митцями, кураторами, галеристами та арт-дилерами.", link: "/artists" },
-  { icon: Calendar, title: "Події", desc: "Виставки, перформанси, воркшопи по всьому світу.", link: "/events" },
-  { icon: ShoppingBag, title: "Маркет", desc: "Продавай та рекламуй мистецтво, послуги та матеріали.", link: "/market" },
-  { icon: MessageCircle, title: "Месенджер", desc: "Особисті повідомлення, групові чати, канали для аудиторії." },
-  { icon: Video, title: "Аудіо & Відео", desc: "Онлайн-кімнати для дискусій, лекцій та спільної роботи." },
-  { icon: Star, title: "Просування", desc: "Платна підписка для топ-розміщення, галереї та автопостингу." },
-];
-
-const sampleAnnouncements = [
-  { type: "offer", author: "Олена М.", title: "Зроблю каліграфію для запрошень", tags: ["каліграфія", "дизайн"], city: "Берлін" },
-  { type: "offer", author: "Артем К.", title: "Є вільний виставковий простір на 2 тижні", tags: ["простір", "виставка"], city: "Відень" },
-  { type: "seek", author: "Ірина Т.", title: "Шукаю куратора для групової виставки", tags: ["куратор", "виставка"], city: "Варшава" },
-  { type: "seek", author: "Дмитро Л.", title: "Потрібна упаковка та доставка 12 картин", tags: ["логістика", "доставка"], city: "Мадрид" },
-];
-
 export default function Index() {
+  const { t } = useLanguage();
+
+  const features = [
+    { icon: Megaphone, title: t.home.feat_board, desc: t.home.feat_board_desc, link: "/board" },
+    { icon: Users, title: t.home.feat_networking, desc: t.home.feat_networking_desc, link: "/artists" },
+    { icon: Calendar, title: t.home.feat_events, desc: t.home.feat_events_desc, link: "/events" },
+    { icon: ShoppingBag, title: t.home.feat_market, desc: t.home.feat_market_desc, link: "/market" },
+    { icon: MessageCircle, title: t.home.feat_messenger, desc: t.home.feat_messenger_desc },
+    { icon: Video, title: t.home.feat_audio, desc: t.home.feat_audio_desc },
+    { icon: Star, title: t.home.feat_promo, desc: t.home.feat_promo_desc },
+  ];
+
+  const sampleAnnouncements = [
+    { type: "offer", author: "Олена М.", title: "Зроблю каліграфію для запрошень", tags: ["каліграфія", "дизайн"], city: "Берлін" },
+    { type: "offer", author: "Артем К.", title: "Є вільний виставковий простір на 2 тижні", tags: ["простір", "виставка"], city: "Відень" },
+    { type: "seek", author: "Ірина Т.", title: "Шукаю куратора для групової виставки", tags: ["куратор", "виставка"], city: "Варшава" },
+    { type: "seek", author: "Дмитро Л.", title: "Потрібна упаковка та доставка 12 картин", tags: ["логістика", "доставка"], city: "Мадрид" },
+  ];
+
   return (
     <>
       {/* Hero */}
@@ -38,23 +41,23 @@ export default function Index() {
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <motion.div initial="hidden" animate="visible" className="max-w-xl">
               <motion.p variants={fadeUp} custom={0} className="mb-4 text-sm font-semibold uppercase tracking-widest text-primary">
-                Для українських митців у всьому світі
+                {t.home.hero_badge}
               </motion.p>
               <motion.h1 variants={fadeUp} custom={1} className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-                Обʼєднуємо <span className="text-gradient">творчість</span> без кордонів
+                {t.home.hero_title_1}<span className="text-gradient">{t.home.hero_title_highlight}</span>{t.home.hero_title_2}
               </motion.h1>
               <motion.p variants={fadeUp} custom={2} className="mb-8 text-lg leading-relaxed text-muted-foreground">
-                Нетворкінг, маркетплейс, події та спільнота для митців, кураторів, галеристів та всіх, хто повʼязаний з креативними індустріями.
+                {t.home.hero_desc}
               </motion.p>
               <motion.div variants={fadeUp} custom={3} className="flex flex-wrap gap-3">
                 <Button size="lg" asChild>
                   <Link to="/board">
-                    Дошка оголошень
+                    {t.home.hero_cta_board}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link to="/artists">Переглянути митців</Link>
+                  <Link to="/artists">{t.home.hero_cta_artists}</Link>
                 </Button>
               </motion.div>
             </motion.div>
@@ -65,7 +68,7 @@ export default function Index() {
               className="relative"
             >
               <div className="overflow-hidden rounded-2xl card-shadow">
-                <img src={heroArt} alt="Мистецтво" className="w-full object-cover" />
+                <img src={heroArt} alt={t.home.hero_img_alt} className="w-full object-cover" />
               </div>
             </motion.div>
           </div>
@@ -76,9 +79,9 @@ export default function Index() {
       <section className="py-20 lg:py-28">
         <div className="container">
           <div className="mx-auto mb-14 max-w-2xl text-center">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">Можливості платформи</p>
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Все для творчої діяльності</h2>
-            <p className="text-muted-foreground">Від пошуку партнерів до продажу мистецтва — одна платформа для всього.</p>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">{t.home.features_badge}</p>
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">{t.home.features_title}</h2>
+            <p className="text-muted-foreground">{t.home.features_desc}</p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {features.map((f, i) => (
@@ -109,19 +112,18 @@ export default function Index() {
         <div className="container">
           <div className="mb-10 flex items-end justify-between">
             <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">Дошка оголошень</p>
-              <h2 className="text-3xl font-bold">Можу / Хочу</h2>
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">{t.home.board_badge}</p>
+              <h2 className="text-3xl font-bold">{t.home.board_title}</h2>
             </div>
             <Button variant="outline" asChild>
-              <Link to="/board">Всі оголошення <ArrowRight className="ml-1.5 h-4 w-4" /></Link>
+              <Link to="/board">{t.home.board_all} <ArrowRight className="ml-1.5 h-4 w-4" /></Link>
             </Button>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Можу */}
             <div>
               <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold font-sans">
-                <span className="inline-flex h-7 items-center rounded-full bg-primary/10 px-3 text-xs font-bold text-primary">МОЖУ</span>
-                Пропоную
+                <span className="inline-flex h-7 items-center rounded-full bg-primary/10 px-3 text-xs font-bold text-primary">{t.home.can_label}</span>
+                {t.home.can_title}
               </h3>
               <div className="space-y-3">
                 {sampleAnnouncements.filter(a => a.type === "offer").map((a, i) => (
@@ -129,11 +131,10 @@ export default function Index() {
                 ))}
               </div>
             </div>
-            {/* Хочу */}
             <div>
               <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold font-sans">
-                <span className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-xs font-bold text-accent-foreground">ХОЧУ</span>
-                Шукаю
+                <span className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-xs font-bold text-accent-foreground">{t.home.want_label}</span>
+                {t.home.want_title}
               </h3>
               <div className="space-y-3">
                 {sampleAnnouncements.filter(a => a.type === "seek").map((a, i) => (
@@ -154,12 +155,12 @@ export default function Index() {
             viewport={{ once: true }}
             className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-10 text-center card-shadow sm:p-14"
           >
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Приєднуйся до спільноти</h2>
-            <p className="mb-8 text-muted-foreground">Безкоштовна реєстрація. Почни знаходити можливості, партнерів та натхнення вже сьогодні.</p>
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">{t.home.cta_title}</h2>
+            <p className="mb-8 text-muted-foreground">{t.home.cta_desc}</p>
             <div className="flex flex-wrap justify-center gap-3">
-              <Button size="lg">Створити акаунт</Button>
+              <Button size="lg">{t.home.cta_register}</Button>
               <Button size="lg" variant="outline" asChild>
-                <Link to="/pricing">Переглянути тарифи</Link>
+                <Link to="/pricing">{t.home.cta_pricing}</Link>
               </Button>
             </div>
           </motion.div>

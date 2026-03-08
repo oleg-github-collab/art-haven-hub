@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X, Search, Bell, MessageCircle, User, Globe, ShoppingCart, Palette } from "lucide-react";
+import { Menu, X, Search, Bell, MessageCircle, User, ShoppingCart, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
+import { useLanguage, type Language } from "@/i18n";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,17 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const navItems = [
-  { label: "Головна", href: "/" },
-  { label: "Стрічка", href: "/feed" },
-  { label: "Дошка", href: "/board" },
-  { label: "Маркет", href: "/market" },
-  { label: "Митці", href: "/artists" },
-  { label: "Події", href: "/events" },
-  { label: "Тарифи", href: "/pricing" },
-];
-
-const languages = [
+const languages: { code: Language; label: string; flag: string }[] = [
   { code: "uk", label: "Українська", flag: "🇺🇦" },
   { code: "en", label: "English", flag: "🇬🇧" },
   { code: "de", label: "Deutsch", flag: "🇩🇪" },
@@ -33,9 +24,19 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
-  const [currentLang, setCurrentLang] = useState("uk");
+  const { lang, setLang, t } = useLanguage();
 
-  const currentFlag = languages.find(l => l.code === currentLang)?.flag || "🇺🇦";
+  const currentFlag = languages.find(l => l.code === lang)?.flag || "🇺🇦";
+
+  const navItems = [
+    { label: t.nav.home, href: "/" },
+    { label: t.nav.feed, href: "/feed" },
+    { label: t.nav.board, href: "/board" },
+    { label: t.nav.market, href: "/market" },
+    { label: t.nav.artists, href: "/artists" },
+    { label: t.nav.events, href: "/events" },
+    { label: t.nav.pricing, href: "/pricing" },
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-2xl">
@@ -46,8 +47,8 @@ export default function Navbar() {
             <Palette className="h-4 w-4 text-primary-foreground" />
           </div>
           <div className="hidden sm:flex flex-col leading-none">
-            <span className="text-base font-bold font-serif tracking-tight">Мистецтво</span>
-            <span className="text-[10px] text-muted-foreground font-sans -mt-0.5">Ukrainian Art Platform</span>
+            <span className="text-base font-bold font-serif tracking-tight">{t.common.platform_name}</span>
+            <span className="text-[10px] text-muted-foreground font-sans -mt-0.5">{t.common.platform_subtitle}</span>
           </div>
         </Link>
 
@@ -99,14 +100,14 @@ export default function Navbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[160px]">
-              {languages.map(lang => (
+              {languages.map(l => (
                 <DropdownMenuItem
-                  key={lang.code}
-                  onClick={() => setCurrentLang(lang.code)}
-                  className={currentLang === lang.code ? "bg-accent" : ""}
+                  key={l.code}
+                  onClick={() => setLang(l.code)}
+                  className={lang === l.code ? "bg-accent" : ""}
                 >
-                  <span className="mr-2">{lang.flag}</span>
-                  {lang.label}
+                  <span className="mr-2">{l.flag}</span>
+                  {l.label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -128,14 +129,14 @@ export default function Navbar() {
           <Button variant="ghost" size="sm" className="hidden md:flex h-8 text-xs gap-1.5" asChild>
             <Link to="/dashboard">
               <Palette className="h-3.5 w-3.5" />
-              Панель
+              {t.nav.panel}
             </Link>
           </Button>
 
           {/* Auth */}
           <Button size="sm" className="hidden sm:flex h-8 text-xs">
             <User className="mr-1 h-3.5 w-3.5" />
-            Увійти
+            {t.nav.login}
           </Button>
 
           {/* Mobile toggle */}
@@ -180,12 +181,28 @@ export default function Navbar() {
                 className="rounded-lg px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent/60 flex items-center gap-2"
               >
                 <Palette className="h-4 w-4" />
-                Панель митця
+                {t.nav.panel}
               </Link>
+              {/* Mobile language picker */}
+              <div className="mt-2 flex flex-wrap gap-2 px-4">
+                {languages.map(l => (
+                  <button
+                    key={l.code}
+                    onClick={() => setLang(l.code)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                      lang === l.code
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    }`}
+                  >
+                    {l.flag} {l.label}
+                  </button>
+                ))}
+              </div>
               <div className="mt-2 flex items-center gap-2 px-4">
                 <Button size="sm" className="flex-1">
                   <User className="mr-1.5 h-4 w-4" />
-                  Увійти
+                  {t.nav.login}
                 </Button>
               </div>
             </nav>

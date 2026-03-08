@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, ShoppingBag, MapPin, Star, Heart, Eye, Grid3X3, List, X, ChevronDown, MessageCircle, Share2, Clock, Shield, Tag, ShoppingCart, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const cardVariants = {
 };
 
 export default function MarketPage() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
@@ -46,7 +48,7 @@ export default function MarketPage() {
     e.preventDefault();
     e.stopPropagation();
     addItem({ id: item.id, title: item.title, price: item.price, priceNum: item.priceNum, seller: item.seller, emoji: item.emoji });
-    toast.success("Додано до кошика");
+    toast.success(t.market.added_to_cart);
   }, [addItem]);
 
   const filtered = useMemo(() => {
@@ -81,14 +83,14 @@ export default function MarketPage() {
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">Маркетплейс</p>
-            <h1 className="text-3xl font-bold sm:text-4xl">Маркет</h1>
-            <p className="mt-2 text-muted-foreground">Мистецтво, матеріали, інвентар та послуги для творчої діяльності.</p>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">{t.market.badge}</p>
+            <h1 className="text-3xl font-bold sm:text-4xl">{t.market.title}</h1>
+            <p className="mt-2 text-muted-foreground">{t.market.desc}</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.4 }}>
             <Button className="gap-2">
               <ShoppingBag className="h-4 w-4" />
-              Розмістити товар
+              {t.market.add_item}
             </Button>
           </motion.div>
         </div>
@@ -105,7 +107,7 @@ export default function MarketPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Пошук за назвою, автором, тегом, містом…"
+                placeholder={t.market.search_placeholder}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="pl-10 bg-background/60"
@@ -119,7 +121,7 @@ export default function MarketPage() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5 relative">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
-                Фільтри
+                {t.market.filters}
                 {activeFiltersCount > 0 && (
                   <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                     {activeFiltersCount}
@@ -282,8 +284,8 @@ export default function MarketPage() {
 
         {filtered.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20 text-center">
-            <p className="text-lg font-medium text-muted-foreground">Нічого не знайдено</p>
-            <p className="mt-1 text-sm text-muted-foreground">Спробуйте змінити пошуковий запит або фільтри</p>
+            <p className="text-lg font-medium text-muted-foreground">{t.market.nothing_found}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t.market.try_change}</p>
           </motion.div>
         )}
       </div>

@@ -5,6 +5,7 @@ import {
   Smile, MoreHorizontal, BadgeCheck, TrendingUp, Clock, Flame,
   Plus, Search, Filter, X, ChevronDown, ChevronUp,
 } from "lucide-react";
+import { useLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,18 +16,19 @@ import { samplePosts, type FeedPost, type FeedComment } from "@/data/feedData";
 
 type SortMode = "hot" | "new" | "top";
 
-const sortOptions: { value: SortMode; label: string; icon: React.ElementType }[] = [
-  { value: "hot", label: "Гарячі", icon: Flame },
-  { value: "new", label: "Нові", icon: Clock },
-  { value: "top", label: "Топ", icon: TrendingUp },
-];
-
 export default function FeedPage() {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<FeedPost[]>(samplePosts);
   const [sort, setSort] = useState<SortMode>("hot");
   const [search, setSearch] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
   const [newPostText, setNewPostText] = useState("");
+
+  const sortOpts: { value: SortMode; label: string; icon: React.ElementType }[] = [
+    { value: "hot", label: t.feed.hot, icon: Flame },
+    { value: "new", label: t.feed.new, icon: Clock },
+    { value: "top", label: t.feed.top, icon: TrendingUp },
+  ];
 
   const filtered = useMemo(() => {
     let list = [...posts];
@@ -70,9 +72,9 @@ export default function FeedPage() {
     if (!newPostText.trim()) return;
     const newPost: FeedPost = {
       id: Date.now().toString(),
-      author: { name: "Ви", handle: "@you", avatar: "", verified: false },
+      author: { name: t.feed.you, handle: "@you", avatar: "", verified: false },
       content: newPostText,
-      timeAgo: "Щойно",
+      timeAgo: t.feed.just_now,
       likes: 0,
       comments: [],
       reposts: 0,
@@ -91,9 +93,9 @@ export default function FeedPage() {
       <div className="container max-w-2xl py-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold sm:text-3xl">Стрічка</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.feed.title}</h1>
           <Button onClick={() => setComposeOpen(true)} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" /> Написати
+            <Plus className="h-4 w-4" /> {t.feed.write}
           </Button>
         </div>
 
@@ -102,14 +104,14 @@ export default function FeedPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Пошук у стрічці..."
+              placeholder={t.feed.search_placeholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
             />
           </div>
           <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
-            {sortOptions.map((s) => (
+            {sortOpts.map((s) => (
               <button
                 key={s.value}
                 onClick={() => setSort(s.value)}
@@ -134,7 +136,7 @@ export default function FeedPage() {
             </Avatar>
             <div className="flex-1">
               <Textarea
-                placeholder="Що нового у світі мистецтва?"
+                placeholder={t.feed.compose_placeholder}
                 value={newPostText}
                 onChange={(e) => setNewPostText(e.target.value)}
                 className="min-h-[60px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -149,7 +151,7 @@ export default function FeedPage() {
                   </Button>
                 </div>
                 <Button size="sm" disabled={!newPostText.trim()} onClick={handlePublish}>
-                  Опублікувати
+                  {t.feed.publish}
                 </Button>
               </div>
             </div>
@@ -179,7 +181,7 @@ export default function FeedPage() {
           </AnimatePresence>
           {filtered.length === 0 && (
             <div className="py-16 text-center text-muted-foreground">
-              Нічого не знайдено
+              {t.feed.nothing_found}
             </div>
           )}
         </div>
@@ -189,14 +191,14 @@ export default function FeedPage() {
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Новий допис</DialogTitle>
+            <DialogTitle>{t.feed.compose_dialog_title}</DialogTitle>
           </DialogHeader>
           <div className="flex gap-3">
             <Avatar className="h-10 w-10 shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">В</AvatarFallback>
             </Avatar>
             <Textarea
-              placeholder="Поділіться думками, роботами, подіями..."
+              placeholder={t.feed.compose_dialog_placeholder}
               value={newPostText}
               onChange={(e) => setNewPostText(e.target.value)}
               className="min-h-[120px] resize-none"
