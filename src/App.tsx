@@ -18,6 +18,12 @@ import MessengerPage from "./pages/MessengerPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import PricingPage from "./pages/PricingPage";
 import ArtistDashboardPage from "./pages/ArtistDashboardPage";
+import AboutPage from "./pages/AboutPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import CookiesPage from "./pages/CookiesPage";
+import RefundsPage from "./pages/RefundsPage";
+import HelpPage from "./pages/HelpPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +51,12 @@ const App = () => (
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/profile/:handle" element={<UserProfilePage />} />
               <Route path="/dashboard" element={<ArtistDashboardPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/cookies" element={<CookiesPage />} />
+              <Route path="/refunds" element={<RefundsPage />} />
+              <Route path="/help" element={<HelpPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
