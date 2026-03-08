@@ -23,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/context";
 
 /* ── fake artwork data ──────────────────────────────── */
 interface Artwork {
@@ -41,7 +42,7 @@ interface Artwork {
 
 const initialArtworks: Artwork[] = [
   { id: 1, title: "Абстрактний пейзаж", emoji: "🎨", price: 1200, status: "active", views: 156, likes: 24, created: "2 дні тому", description: "Оригінальна робота олійними фарбами. Абстрактний пейзаж, натхненний Карпатськими горами.", translations: {} },
-  { id: 2, title: "Карпатський туман", emoji: "🌄", price: 850, status: "promoted", views: 312, likes: 45, created: "1 тиждень тому", description: "Туманний ранок у Карпатах, олія на полотні 60×80.", translations: { en: "Foggy morning in Carpathians, oil on canvas 60×80." }, promotedUntil: "ще 5 днів" },
+  { id: 2, title: "Карпатський туман", emoji: "🌄", price: 850, status: "promoted", views: 312, likes: 45, created: "1 тиждень тому", description: "Туманний ранок у Карпатах, олія на полотні 60×80.", translations: { en: "Foggy morning in Carpathians, oil on canvas 60×80." }, promotedUntil: "5d" },
   { id: 3, title: "Весняний Відень", emoji: "🌸", price: 680, status: "active", views: 89, likes: 12, created: "5 днів тому", description: "Акварельна серія, натхненна весняними парками Відня.", translations: {} },
   { id: 4, title: "Море вночі", emoji: "🌊", price: 1500, status: "sold", views: 234, likes: 56, created: "2 тижні тому", description: "Нічне море, масло, мастихін. 100×120 см.", translations: { en: "Night sea, oil, palette knife. 100×120 cm.", de: "Nächtliches Meer, Öl, Spachtel. 100×120 cm." } },
   { id: 5, title: "Портрет з квітами", emoji: "💐", price: 950, status: "draft", views: 0, likes: 0, created: "вчора", description: "Портрет молодої жінки з квітами у волоссі.", translations: {} },
@@ -55,22 +56,14 @@ const LANGUAGES = [
   { code: "fr", label: "Français", flag: "🇫🇷" },
 ];
 
-const PROMO_OPTIONS = [
-  { days: 1, price: 2, label: "1 день" },
-  { days: 3, price: 5, label: "3 дні", badge: "-17%" },
-  { days: 7, price: 10, label: "7 днів", badge: "-29%" },
-  { days: 30, price: 30, label: "30 днів", badge: "-50%" },
-];
-
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  active: { label: "Активна", variant: "default" },
-  promoted: { label: "Топ", variant: "secondary" },
-  sold: { label: "Продано", variant: "outline" },
-  draft: { label: "Чернетка", variant: "outline" },
-};
+const PROMO_OPTIONS_DAYS = [1, 3, 7, 30];
+const PROMO_PRICES: Record<number, number> = { 1: 2, 3: 5, 7: 10, 30: 30 };
+const PROMO_BADGES: Record<number, string | undefined> = { 1: undefined, 3: "-17%", 7: "-29%", 30: "-50%" };
 
 /* ── component ──────────────────────────────────────── */
 export default function ArtistDashboardPage() {
+  const { t } = useLanguage();
+  const d = t.dashboard;
   const { toast } = useToast();
   const [artworks, setArtworks] = useState<Artwork[]>(initialArtworks);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -81,6 +74,13 @@ export default function ArtistDashboardPage() {
   const [translating, setTranslating] = useState(false);
   const [selectedPromo, setSelectedPromo] = useState(1);
 
+  const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+    active: { label: d.status_active, variant: "default" },
+    promoted: { label: d.status_promoted, variant: "secondary" },
+    sold: { label: d.status_sold, variant: "outline" },
+    draft: { label: d.status_draft, variant: "outline" },
+  };
+
   const filtered = useMemo(() => {
     if (filter === "all") return artworks;
     return artworks.filter((a) => a.status === filter);
@@ -89,11 +89,8 @@ export default function ArtistDashboardPage() {
   const allSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
 
   const toggleAll = () => {
-    if (allSelected) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(filtered.map((a) => a.id)));
-    }
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(filtered.map((a) => a.id)));
   };
 
   const toggleOne = (id: number) => {
@@ -125,33 +122,33 @@ export default function ArtistDashboardPage() {
       setTranslateDialog({ open: false, ids: [] });
       setSelected(new Set());
       toast({
-        title: "Переклад завершено",
-        description: `${translateDialog.ids.length} опис(ів) перекладено на ${lang.label}`,
+        title: d.translate_done,
+        description: `${translateDialog.ids.length} ${d.translated_desc} ${lang.label}`,
       });
     }, 2000);
   };
 
   /* ── promote (mock) ── */
   const handlePromote = () => {
-    const promo = PROMO_OPTIONS.find((p) => p.days === selectedPromo)!;
+    const price = PROMO_PRICES[selectedPromo] || 0;
     setArtworks((prev) =>
       prev.map((a) => {
         if (!promoDialog.ids.includes(a.id)) return a;
-        return { ...a, status: "promoted" as const, promotedUntil: `ще ${promo.days} д.` };
+        return { ...a, status: "promoted" as const, promotedUntil: `${selectedPromo}d` };
       })
     );
     setPromoDialog({ open: false, ids: [] });
     setSelected(new Set());
     toast({
-      title: "Роботи просунуто",
-      description: `${promoDialog.ids.length} робота(и) в топі на ${promo.label} за €${promo.price * promoDialog.ids.length}`,
+      title: d.works_promoted,
+      description: `${promoDialog.ids.length} ${d.works_promoted_desc} ${selectedPromo}d — €${price * promoDialog.ids.length}`,
     });
   };
 
   /* ── bulk delete (mock) ── */
   const handleBulkDelete = () => {
     setArtworks((prev) => prev.filter((a) => !selected.has(a.id)));
-    toast({ title: "Видалено", description: `${selected.size} робота(и) видалено` });
+    toast({ title: d.deleted, description: `${selected.size} ${d.deleted_desc}` });
     setSelected(new Set());
   };
 
@@ -170,19 +167,19 @@ export default function ArtistDashboardPage() {
       <div className="container max-w-5xl py-6 sm:py-10">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="font-serif text-2xl font-bold sm:text-3xl">Панель митця</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Керуйте роботами, перекладами та просуванням</p>
+          <h1 className="font-serif text-2xl font-bold sm:text-3xl">{d.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{d.desc}</p>
         </div>
 
         {/* Stats row */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { label: "Усього", value: stats.total, icon: Package, color: "text-foreground" },
-            { label: "Активні", value: stats.active, icon: Eye, color: "text-primary" },
-            { label: "Продано", value: stats.sold, icon: Check, color: "text-green-600" },
-            { label: "Перегляди", value: stats.views, icon: BarChart3, color: "text-blue-600" },
-            { label: "Вподобання", value: stats.likes, icon: Heart, color: "text-red-500" },
-            { label: "Дохід", value: `€${stats.revenue.toLocaleString()}`, icon: Euro, color: "text-primary" },
+            { label: d.total, value: stats.total, icon: Package, color: "text-foreground" },
+            { label: d.active, value: stats.active, icon: Eye, color: "text-primary" },
+            { label: d.sold, value: stats.sold, icon: Check, color: "text-green-600" },
+            { label: d.views, value: stats.views, icon: BarChart3, color: "text-blue-600" },
+            { label: d.likes, value: stats.likes, icon: Heart, color: "text-red-500" },
+            { label: d.revenue, value: `€${stats.revenue.toLocaleString()}`, icon: Euro, color: "text-primary" },
           ].map((s) => (
             <motion.div
               key={s.label}
@@ -206,11 +203,11 @@ export default function ArtistDashboardPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Усі роботи</SelectItem>
-              <SelectItem value="active">Активні</SelectItem>
-              <SelectItem value="promoted">Топ</SelectItem>
-              <SelectItem value="sold">Продані</SelectItem>
-              <SelectItem value="draft">Чернетки</SelectItem>
+              <SelectItem value="all">{d.all_works}</SelectItem>
+              <SelectItem value="active">{d.status_active}</SelectItem>
+              <SelectItem value="promoted">{d.promoted}</SelectItem>
+              <SelectItem value="sold">{d.status_sold}</SelectItem>
+              <SelectItem value="draft">{d.drafts}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -226,7 +223,7 @@ export default function ArtistDashboardPage() {
               >
                 <Badge variant="secondary" className="gap-1">
                   <CheckSquare className="h-3 w-3" />
-                  {selected.size} обрано
+                  {selected.size} {d.selected}
                 </Badge>
                 <Button
                   size="sm"
@@ -235,7 +232,7 @@ export default function ArtistDashboardPage() {
                   onClick={() => setTranslateDialog({ open: true, ids: Array.from(selected) })}
                 >
                   <Languages className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">ШІ-переклад</span>
+                  <span className="hidden sm:inline">{d.ai_translate}</span>
                 </Button>
                 <Button
                   size="sm"
@@ -243,11 +240,11 @@ export default function ArtistDashboardPage() {
                   onClick={() => setPromoDialog({ open: true, ids: Array.from(selected) })}
                 >
                   <Megaphone className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Просувати</span>
+                  <span className="hidden sm:inline">{d.promote}</span>
                 </Button>
                 <Button size="sm" variant="destructive" className="gap-1.5" onClick={handleBulkDelete}>
                   <Trash2 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Видалити</span>
+                  <span className="hidden sm:inline">{d.delete_btn}</span>
                 </Button>
               </motion.div>
             )}
@@ -259,11 +256,11 @@ export default function ArtistDashboardPage() {
           {/* Header */}
           <div className="hidden items-center gap-3 border-b border-border bg-muted/50 px-4 py-3 text-xs font-medium text-muted-foreground sm:flex">
             <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
-            <span className="flex-1">Робота</span>
-            <span className="w-20 text-center">Ціна</span>
-            <span className="w-20 text-center">Статус</span>
-            <span className="w-20 text-center">Перегляди</span>
-            <span className="w-16 text-center">Мови</span>
+            <span className="flex-1">{d.artwork}</span>
+            <span className="w-20 text-center">{d.price}</span>
+            <span className="w-20 text-center">{d.status}</span>
+            <span className="w-20 text-center">{d.views}</span>
+            <span className="w-16 text-center">{d.languages}</span>
             <span className="w-10" />
           </div>
 
@@ -330,17 +327,17 @@ export default function ArtistDashboardPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setTranslateDialog({ open: true, ids: [art.id] })}>
-                    <Languages className="mr-2 h-4 w-4" />ШІ-переклад
+                    <Languages className="mr-2 h-4 w-4" />{d.ai_translate}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setPromoDialog({ open: true, ids: [art.id] })}>
-                    <Megaphone className="mr-2 h-4 w-4" />Просувати
+                    <Megaphone className="mr-2 h-4 w-4" />{d.promote}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem><Edit3 className="mr-2 h-4 w-4" />Редагувати</DropdownMenuItem>
-                  <DropdownMenuItem><Copy className="mr-2 h-4 w-4" />Дублювати</DropdownMenuItem>
+                  <DropdownMenuItem><Edit3 className="mr-2 h-4 w-4" />{d.edit}</DropdownMenuItem>
+                  <DropdownMenuItem><Copy className="mr-2 h-4 w-4" />{d.duplicate}</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />Видалити
+                    <Trash2 className="mr-2 h-4 w-4" />{d.delete_btn}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -348,7 +345,7 @@ export default function ArtistDashboardPage() {
           ))}
 
           {filtered.length === 0 && (
-            <div className="py-12 text-center text-sm text-muted-foreground">Немає робіт у цій категорії</div>
+            <div className="py-12 text-center text-sm text-muted-foreground">{d.no_works}</div>
           )}
         </div>
 
@@ -358,7 +355,7 @@ export default function ArtistDashboardPage() {
             <div className="flex items-start gap-3">
               <TrendingUp className="mt-0.5 h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm font-semibold">Активні просування</p>
+                <p className="text-sm font-semibold">{d.active_promos}</p>
                 {artworks
                   .filter((a) => a.status === "promoted")
                   .map((a) => (
@@ -378,17 +375,16 @@ export default function ArtistDashboardPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              ШІ-переклад описів
+              {d.translate_title}
             </DialogTitle>
             <DialogDescription>
-              Оберіть мову для автоматичного перекладу{" "}
-              {translateDialog.ids.length > 1 ? `${translateDialog.ids.length} робіт` : "роботи"}
+              {d.translate_desc}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium">Мова перекладу</label>
+              <label className="mb-1.5 block text-sm font-medium">{d.translate_lang}</label>
               <Select value={translateLang} onValueChange={setTranslateLang}>
                 <SelectTrigger>
                   <SelectValue />
@@ -404,7 +400,7 @@ export default function ArtistDashboardPage() {
             </div>
 
             <div className="rounded-lg bg-muted/50 p-3">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Буде перекладено:</p>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">{d.will_translate}</p>
               {translateDialog.ids.map((id) => {
                 const a = artworks.find((x) => x.id === id);
                 return a ? (
@@ -412,7 +408,7 @@ export default function ArtistDashboardPage() {
                     <span>{a.emoji}</span>
                     <span className="truncate">{a.title}</span>
                     {a.translations[translateLang] && (
-                      <Badge variant="outline" className="ml-auto text-[10px]">є переклад</Badge>
+                      <Badge variant="outline" className="ml-auto text-[10px]">{d.has_translation}</Badge>
                     )}
                   </div>
                 ) : null;
@@ -422,18 +418,18 @@ export default function ArtistDashboardPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setTranslateDialog({ open: false, ids: [] })}>
-              Скасувати
+              {d.cancel}
             </Button>
             <Button onClick={handleTranslate} disabled={translating} className="gap-1.5">
               {translating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Перекладаю…
+                  {d.translating}
                 </>
               ) : (
                 <>
                   <Globe className="h-4 w-4" />
-                  Перекласти
+                  {d.translate_btn}
                 </>
               )}
             </Button>
@@ -447,53 +443,53 @@ export default function ArtistDashboardPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Megaphone className="h-5 w-5 text-primary" />
-              Просувати роботу
+              {d.promo_title}
             </DialogTitle>
             <DialogDescription>
               {promoDialog.ids.length > 1
-                ? `Обрано ${promoDialog.ids.length} робіт для просування`
-                : "Оберіть тривалість розміщення у топі"}
+                ? `${promoDialog.ids.length} ${d.promo_desc_multi}`
+                : d.promo_desc_single}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-3 py-2">
-            {PROMO_OPTIONS.map((opt) => (
+            {PROMO_OPTIONS_DAYS.map((days) => (
               <button
-                key={opt.days}
-                onClick={() => setSelectedPromo(opt.days)}
+                key={days}
+                onClick={() => setSelectedPromo(days)}
                 className={`relative rounded-xl border p-4 text-left transition-all ${
-                  selectedPromo === opt.days
+                  selectedPromo === days
                     ? "border-primary bg-primary/5 ring-1 ring-primary"
                     : "border-border hover:border-primary/40"
                 }`}
               >
-                {opt.badge && (
-                  <Badge className="absolute -top-2 right-2 text-[10px]">{opt.badge}</Badge>
+                {PROMO_BADGES[days] && (
+                  <Badge className="absolute -top-2 right-2 text-[10px]">{PROMO_BADGES[days]}</Badge>
                 )}
-                <p className="text-sm font-semibold">{opt.label}</p>
-                <p className="mt-1 text-lg font-bold text-primary">€{opt.price}</p>
-                <p className="text-[11px] text-muted-foreground">за роботу</p>
+                <p className="text-sm font-semibold">{days}d</p>
+                <p className="mt-1 text-lg font-bold text-primary">€{PROMO_PRICES[days]}</p>
+                <p className="text-[11px] text-muted-foreground">{d.per_artwork}</p>
               </button>
             ))}
           </div>
 
           {promoDialog.ids.length > 1 && (
             <div className="rounded-lg bg-muted/50 p-3 text-sm">
-              <span className="text-muted-foreground">Разом: </span>
+              <span className="text-muted-foreground">{d.promo_total} </span>
               <span className="font-bold">
-                €{(PROMO_OPTIONS.find((p) => p.days === selectedPromo)?.price || 0) * promoDialog.ids.length}
+                €{(PROMO_PRICES[selectedPromo] || 0) * promoDialog.ids.length}
               </span>
-              <span className="text-muted-foreground"> за {promoDialog.ids.length} робіт</span>
+              <span className="text-muted-foreground"> {d.promo_for} {promoDialog.ids.length}</span>
             </div>
           )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setPromoDialog({ open: false, ids: [] })}>
-              Скасувати
+              {d.cancel}
             </Button>
             <Button onClick={handlePromote} className="gap-1.5">
               <ArrowUpRight className="h-4 w-4" />
-              Оплатити та просунути
+              {d.pay_promote}
             </Button>
           </DialogFooter>
         </DialogContent>
