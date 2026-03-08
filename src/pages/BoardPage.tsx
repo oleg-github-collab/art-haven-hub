@@ -3,19 +3,12 @@ import { motion } from "framer-motion";
 import { Plus, MapPin, Clock, MessageCircle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLanguage } from "@/i18n";
 
 type Announcement = {
-  id: number;
-  type: "offer" | "seek";
-  author: string;
-  avatar: string;
-  title: string;
-  description: string;
-  tags: string[];
-  city: string;
-  time: string;
-  premium: boolean;
+  id: number; type: "offer" | "seek"; author: string; avatar: string;
+  title: string; description: string; tags: string[]; city: string; time: string; premium: boolean;
 };
 
 const mockData: Announcement[] = [
@@ -31,70 +24,55 @@ const mockData: Announcement[] = [
 
 export default function BoardPage() {
   const [activeTab, setActiveTab] = useState("all");
-
+  const { t } = useLanguage();
   const filtered = activeTab === "all" ? mockData : mockData.filter(a => a.type === activeTab);
 
   return (
     <div className="py-10 lg:py-16">
       <div className="container">
-        {/* Header */}
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">Оголошення</p>
-            <h1 className="text-3xl font-bold sm:text-4xl">Дошка «Можу / Хочу»</h1>
-            <p className="mt-2 text-muted-foreground">Знайди або запропонуй послуги, простір, інвентар та партнерства.</p>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">{t.board.badge}</p>
+            <h1 className="text-3xl font-bold sm:text-4xl">{t.board.title}</h1>
+            <p className="mt-2 text-muted-foreground">{t.board.desc}</p>
           </div>
           <Button>
             <Plus className="mr-1.5 h-4 w-4" />
-            Створити оголошення
+            {t.board.create}
           </Button>
         </div>
 
-        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="bg-secondary">
-            <TabsTrigger value="all">Усі</TabsTrigger>
-            <TabsTrigger value="offer">🟢 Можу</TabsTrigger>
-            <TabsTrigger value="seek">🔵 Хочу</TabsTrigger>
+            <TabsTrigger value="all">{t.board.all}</TabsTrigger>
+            <TabsTrigger value="offer">{t.board.can}</TabsTrigger>
+            <TabsTrigger value="seek">{t.board.want}</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Two-column grid */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Можу column */}
           <div>
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold font-sans">
-              <span className="inline-flex h-7 items-center rounded-full bg-primary/10 px-3 text-xs font-bold text-primary">МОЖУ</span>
-              Пропоную
+              <span className="inline-flex h-7 items-center rounded-full bg-primary/10 px-3 text-xs font-bold text-primary">{t.board.can_label}</span>
+              {t.board.can_title}
             </h2>
             <div className="space-y-4">
               {filtered.filter(a => a.type === "offer").map((a, i) => (
-                <motion.div
-                  key={a.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <BoardCard announcement={a} />
+                <motion.div key={a.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <BoardCard announcement={a} respondLabel={t.board.respond} premiumLabel={t.board.premium} />
                 </motion.div>
               ))}
             </div>
           </div>
-          {/* Хочу column */}
           <div>
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold font-sans">
-              <span className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-xs font-bold text-accent-foreground">ХОЧУ</span>
-              Шукаю
+              <span className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-xs font-bold text-accent-foreground">{t.board.want_label}</span>
+              {t.board.want_title}
             </h2>
             <div className="space-y-4">
               {filtered.filter(a => a.type === "seek").map((a, i) => (
-                <motion.div
-                  key={a.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <BoardCard announcement={a} />
+                <motion.div key={a.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <BoardCard announcement={a} respondLabel={t.board.respond} premiumLabel={t.board.premium} />
                 </motion.div>
               ))}
             </div>
@@ -105,16 +83,12 @@ export default function BoardPage() {
   );
 }
 
-function BoardCard({ announcement: a }: { announcement: Announcement }) {
+function BoardCard({ announcement: a, respondLabel, premiumLabel }: { announcement: Announcement; respondLabel: string; premiumLabel: string }) {
   return (
     <div className={`group rounded-xl border bg-card p-5 transition-all hover:card-shadow-hover ${a.premium ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}>
-      {a.premium && (
-        <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/15">⭐ Преміум</Badge>
-      )}
+      {a.premium && <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/15">{premiumLabel}</Badge>}
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">
-          {a.avatar}
-        </div>
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground">{a.avatar}</div>
         <div className="flex-1">
           <p className="text-sm font-medium">{a.author}</p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -127,17 +101,13 @@ function BoardCard({ announcement: a }: { announcement: Announcement }) {
       <h3 className="mb-1.5 font-semibold font-sans">{a.title}</h3>
       <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{a.description}</p>
       <div className="mb-4 flex flex-wrap gap-1.5">
-        {a.tags.map(t => (
-          <span key={t} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">{t}</span>
-        ))}
+        {a.tags.map(t => <span key={t} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">{t}</span>)}
       </div>
       <div className="flex gap-2">
         <Button size="sm" variant="outline" className="flex-1">
-          <MessageCircle className="mr-1.5 h-3.5 w-3.5" /> Відгукнутись
+          <MessageCircle className="mr-1.5 h-3.5 w-3.5" /> {respondLabel}
         </Button>
-        <Button size="sm" variant="ghost">
-          <UserPlus className="h-3.5 w-3.5" />
-        </Button>
+        <Button size="sm" variant="ghost"><UserPlus className="h-3.5 w-3.5" /></Button>
       </div>
     </div>
   );

@@ -2,19 +2,11 @@ import { motion } from "framer-motion";
 import { MapPin, Calendar, Clock, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/i18n";
 
 type Event = {
-  id: number;
-  title: string;
-  type: string;
-  date: string;
-  time: string;
-  city: string;
-  venue: string;
-  organizer: string;
-  attendees: number;
-  description: string;
-  featured: boolean;
+  id: number; title: string; type: string; date: string; time: string;
+  city: string; venue: string; organizer: string; attendees: number; description: string; featured: boolean;
 };
 
 const events: Event[] = [
@@ -35,33 +27,31 @@ const typeColors: Record<string, string> = {
 };
 
 export default function EventsPage() {
+  const { t } = useLanguage();
+
   return (
     <div className="py-10 lg:py-16">
       <div className="container">
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">Календар</p>
-            <h1 className="text-3xl font-bold sm:text-4xl">Події та заходи</h1>
-            <p className="mt-2 text-muted-foreground">Виставки, воркшопи, лекції та зустрічі для українських митців.</p>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">{t.events.badge}</p>
+            <h1 className="text-3xl font-bold sm:text-4xl">{t.events.title}</h1>
+            <p className="mt-2 text-muted-foreground">{t.events.desc}</p>
           </div>
           <Button>
             <Calendar className="mr-1.5 h-4 w-4" />
-            Створити подію
+            {t.events.create}
           </Button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {events.map((e, i) => (
-            <motion.div
-              key={e.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
+            <motion.div key={e.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
               className={`group rounded-xl border bg-card p-6 transition-all hover:card-shadow-hover ${e.featured ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
             >
               <div className="mb-3 flex items-center gap-2">
                 <Badge className={typeColors[e.type] || "bg-secondary text-secondary-foreground"}>{e.type}</Badge>
-                {e.featured && <Badge className="bg-primary/10 text-primary hover:bg-primary/15">⭐ Рекомендоване</Badge>}
+                {e.featured && <Badge className="bg-primary/10 text-primary hover:bg-primary/15">{t.events.recommended}</Badge>}
               </div>
               <h3 className="mb-2 text-lg font-bold font-serif">{e.title}</h3>
               <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{e.description}</p>
@@ -72,9 +62,9 @@ export default function EventsPage() {
                 <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {e.attendees}</span>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Організатор: <span className="font-medium text-foreground">{e.organizer}</span></p>
+                <p className="text-xs text-muted-foreground">{t.events.organizer}: <span className="font-medium text-foreground">{e.organizer}</span></p>
                 <Button size="sm" variant="outline">
-                  Детальніше <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  {t.events.details} <ArrowRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
               </div>
             </motion.div>

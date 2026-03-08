@@ -2,17 +2,11 @@ import { motion } from "framer-motion";
 import { MapPin, Users, ExternalLink, UserPlus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/i18n";
 
 type Artist = {
-  id: number;
-  name: string;
-  initials: string;
-  role: string;
-  city: string;
-  tags: string[];
-  connections: number;
-  rating: number;
-  premium: boolean;
+  id: number; name: string; initials: string; role: string; city: string;
+  tags: string[]; connections: number; rating: number; premium: boolean;
 };
 
 const artists: Artist[] = [
@@ -27,31 +21,25 @@ const artists: Artist[] = [
 ];
 
 export default function ArtistsPage() {
+  const { t } = useLanguage();
+
   return (
     <div className="py-10 lg:py-16">
       <div className="container">
         <div className="mb-10">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">Каталог</p>
-          <h1 className="text-3xl font-bold sm:text-4xl">Митці та спеціалісти</h1>
-          <p className="mt-2 text-muted-foreground">Знаходь партнерів, кураторів, арт-дилерів та інших фахівців креативних індустрій.</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">{t.artists.badge}</p>
+          <h1 className="text-3xl font-bold sm:text-4xl">{t.artists.title}</h1>
+          <p className="mt-2 text-muted-foreground">{t.artists.desc}</p>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {artists.map((a, i) => (
-            <motion.div
-              key={a.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
+            <motion.div key={a.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
               className={`group rounded-xl border bg-card p-5 transition-all hover:card-shadow-hover ${a.premium ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
             >
-              {a.premium && (
-                <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/15">⭐ PRO</Badge>
-              )}
+              {a.premium && <Badge className="mb-3 bg-primary/10 text-primary hover:bg-primary/15">⭐ PRO</Badge>}
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  {a.initials}
-                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">{a.initials}</div>
                 <div>
                   <p className="font-semibold font-sans">{a.name}</p>
                   <p className="text-xs text-muted-foreground">{a.role}</p>
@@ -63,17 +51,13 @@ export default function ArtistsPage() {
                 <span className="flex items-center gap-1"><Star className="h-3 w-3 text-primary" /> {a.rating}</span>
               </div>
               <div className="mb-4 flex flex-wrap gap-1.5">
-                {a.tags.map(t => (
-                  <span key={t} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">{t}</span>
-                ))}
+                {a.tags.map(tag => <span key={tag} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">{tag}</span>)}
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="flex-1">
-                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Профіль
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> {t.artists.profile}
                 </Button>
-                <Button size="sm" variant="ghost">
-                  <UserPlus className="h-3.5 w-3.5" />
-                </Button>
+                <Button size="sm" variant="ghost"><UserPlus className="h-3.5 w-3.5" /></Button>
               </div>
             </motion.div>
           ))}
