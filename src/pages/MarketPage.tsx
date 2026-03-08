@@ -83,9 +83,9 @@ export default function MarketPage() {
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">Маркетплейс</p>
-            <h1 className="text-3xl font-bold sm:text-4xl">Маркет</h1>
-            <p className="mt-2 text-muted-foreground">Мистецтво, матеріали, інвентар та послуги для творчої діяльності.</p>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-primary">{t.market.badge}</p>
+            <h1 className="text-3xl font-bold sm:text-4xl">{t.market.title}</h1>
+            <p className="mt-2 text-muted-foreground">{t.market.desc}</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.4 }}>
             <Button className="gap-2">
