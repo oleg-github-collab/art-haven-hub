@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, Heart, Share2, ShoppingCart, MapPin, Eye, Clock, Shield, Truck, RotateCcw, Tag, MessageCircle, Gavel, ChevronRight, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Star, Heart, Share2, ShoppingCart, MapPin, Eye, Clock, Shield, Truck, RotateCcw, Tag, MessageCircle, Gavel, ChevronRight, Plus, Minus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
