@@ -90,7 +90,7 @@ export default function MarketPage() {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.4 }}>
             <Button className="gap-2">
               <ShoppingBag className="h-4 w-4" />
-              Розмістити товар
+              {t.market.add_item}
             </Button>
           </motion.div>
         </div>
