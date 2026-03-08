@@ -22,6 +22,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/context";
+import AnalyticsCharts from "@/components/dashboard/AnalyticsCharts";
 
 /* ── fake artwork data ──────────────────────────────── */
 interface Artwork {
