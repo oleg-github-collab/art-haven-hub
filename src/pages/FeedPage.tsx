@@ -72,9 +72,9 @@ export default function FeedPage() {
     if (!newPostText.trim()) return;
     const newPost: FeedPost = {
       id: Date.now().toString(),
-      author: { name: "Ви", handle: "@you", avatar: "", verified: false },
+      author: { name: t.feed.you, handle: "@you", avatar: "", verified: false },
       content: newPostText,
-      timeAgo: "Щойно",
+      timeAgo: t.feed.just_now,
       likes: 0,
       comments: [],
       reposts: 0,
