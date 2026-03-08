@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./contexts/CartContext";
 import Layout from "./components/Layout";
+import CookieBanner from "./components/CookieBanner";
 import Index from "./pages/Index";
 import BoardPage from "./pages/BoardPage";
 import ArtistsPage from "./pages/ArtistsPage";
@@ -18,6 +19,7 @@ import MessengerPage from "./pages/MessengerPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import PricingPage from "./pages/PricingPage";
 import ArtistDashboardPage from "./pages/ArtistDashboardPage";
+import BlogPage from "./pages/BlogPage";
 import AboutPage from "./pages/AboutPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -51,6 +53,7 @@ const App = () => (
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/profile/:handle" element={<UserProfilePage />} />
               <Route path="/dashboard" element={<ArtistDashboardPage />} />
+              <Route path="/blog" element={<BlogPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
@@ -60,6 +63,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieBanner />
         </BrowserRouter>
       </TooltipProvider>
     </CartProvider>
