@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
 import { getItemById, items } from "@/data/marketItems";
 import { toast } from "sonner";
+import ARPreview from "@/components/ARPreview";
 
 export default function ProductPage() {
   const { id } = useParams();
