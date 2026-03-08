@@ -18,6 +18,12 @@ import MessengerPage from "./pages/MessengerPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import PricingPage from "./pages/PricingPage";
 import ArtistDashboardPage from "./pages/ArtistDashboardPage";
+import AboutPage from "./pages/AboutPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import CookiesPage from "./pages/CookiesPage";
+import RefundsPage from "./pages/RefundsPage";
+import HelpPage from "./pages/HelpPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
