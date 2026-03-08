@@ -198,7 +198,7 @@ export default function FeedPage() {
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">В</AvatarFallback>
             </Avatar>
             <Textarea
-              placeholder="Поділіться думками, роботами, подіями..."
+              placeholder={t.feed.compose_dialog_placeholder}
               value={newPostText}
               onChange={(e) => setNewPostText(e.target.value)}
               className="min-h-[120px] resize-none"
