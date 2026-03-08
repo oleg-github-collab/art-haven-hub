@@ -88,6 +88,7 @@ export const items: MarketItem[] = [
     description: "Лімітований фотопринт на музейному папері Hahnemühle. Тираж 25 примірників.",
     fullDescription: "Лімітований фотопринт на музейному папері Hahnemühle Photo Rag 308 г/м². Тираж 25 примірників, нумерація та підпис автора. Зображення зимових Карпат у золотому світлі заходу сонця. Сертифікат автентичності включено.",
     tags: ["фото", "принт", "лімітований", "Карпати"], condition: "Нова", featured: true, date: "1 день тому",
+    artworkWidth: 90, artworkHeight: 60,
     views: 234, likes: 45, biddable: true, currentBid: 300, bidCount: 8,
     shippingOptions: ["Безкоштовна доставка по Європі"],
     reviews: [
