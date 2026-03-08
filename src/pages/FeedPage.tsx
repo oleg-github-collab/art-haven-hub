@@ -151,7 +151,7 @@ export default function FeedPage() {
                   </Button>
                 </div>
                 <Button size="sm" disabled={!newPostText.trim()} onClick={handlePublish}>
-                  Опублікувати
+                  {t.feed.publish}
                 </Button>
               </div>
             </div>
