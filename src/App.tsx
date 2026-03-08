@@ -44,6 +44,7 @@ const App = () => (
               <Route path="/messenger" element={<MessengerPage />} />
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/profile/:handle" element={<UserProfilePage />} />
+              <Route path="/dashboard" element={<ArtistDashboardPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
