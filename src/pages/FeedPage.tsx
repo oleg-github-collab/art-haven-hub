@@ -191,7 +191,7 @@ export default function FeedPage() {
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Новий допис</DialogTitle>
+            <DialogTitle>{t.feed.compose_dialog_title}</DialogTitle>
           </DialogHeader>
           <div className="flex gap-3">
             <Avatar className="h-10 w-10 shrink-0">
