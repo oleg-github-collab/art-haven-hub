@@ -136,7 +136,7 @@ export default function FeedPage() {
             </Avatar>
             <div className="flex-1">
               <Textarea
-                placeholder="Що нового у світі мистецтва?"
+                placeholder={t.feed.compose_placeholder}
                 value={newPostText}
                 onChange={(e) => setNewPostText(e.target.value)}
                 className="min-h-[60px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
