@@ -51,6 +51,12 @@ const App = () => (
               <Route path="/profile" element={<UserProfilePage />} />
               <Route path="/profile/:handle" element={<UserProfilePage />} />
               <Route path="/dashboard" element={<ArtistDashboardPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/cookies" element={<CookiesPage />} />
+              <Route path="/refunds" element={<RefundsPage />} />
+              <Route path="/help" element={<HelpPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
