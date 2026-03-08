@@ -93,9 +93,9 @@ export default function FeedPage() {
       <div className="container max-w-2xl py-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold sm:text-3xl">Стрічка</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.feed.title}</h1>
           <Button onClick={() => setComposeOpen(true)} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" /> Написати
+            <Plus className="h-4 w-4" /> {t.feed.write}
           </Button>
         </div>
 
