@@ -5,15 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-
-const categories = [
-  { id: "all", label: "Усі" },
-  { id: "news", label: "Новини" },
-  { id: "interviews", label: "Інтерв'ю" },
-  { id: "tutorials", label: "Майстер-класи" },
-  { id: "exhibitions", label: "Виставки" },
-  { id: "market", label: "Ринок мистецтва" },
-];
+import { useLanguage } from "@/i18n";
 
 const blogPosts = [
   {
@@ -85,8 +77,18 @@ const blogPosts = [
 ];
 
 export default function BlogPage() {
+  const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const categories = [
+    { id: "all", label: t.blog.all },
+    { id: "news", label: t.blog.news },
+    { id: "interviews", label: t.blog.interviews },
+    { id: "tutorials", label: t.blog.tutorials },
+    { id: "exhibitions", label: t.blog.exhibitions },
+    { id: "market", label: t.blog.art_market },
+  ];
 
   const filteredPosts = blogPosts.filter(post => {
     const matchesCategory = activeCategory === "all" || post.category === activeCategory;
@@ -100,7 +102,6 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <section className="border-b border-border bg-gradient-to-b from-accent/30 to-background">
         <div className="container py-12">
           <motion.div
@@ -108,18 +109,15 @@ export default function BlogPage() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-2xl"
           >
-            <h1 className="text-4xl font-bold font-serif mb-3">Блог</h1>
-            <p className="text-lg text-muted-foreground">
-              Новини, інтерв'ю, майстер-класи та аналітика українського арт-ринку
-            </p>
+            <h1 className="text-4xl font-bold font-serif mb-3">{t.blog.title}</h1>
+            <p className="text-lg text-muted-foreground">{t.blog.desc}</p>
           </motion.div>
 
-          {/* Search & Filters */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Пошук статей..."
+                placeholder={t.blog.search_placeholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -142,12 +140,11 @@ export default function BlogPage() {
       </section>
 
       <div className="container py-10">
-        {/* Featured Posts */}
         {featuredPosts.length > 0 && (
           <section className="mb-12">
             <h2 className="text-xl font-semibold font-serif mb-6 flex items-center gap-2">
               <Tag className="h-5 w-5 text-primary" />
-              Рекомендовані
+              {t.blog.recommended}
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               {featuredPosts.map((post, i) => (
@@ -159,32 +156,18 @@ export default function BlogPage() {
                   className="group relative overflow-hidden rounded-2xl border border-border bg-card"
                 >
                   <div className="aspect-[16/9] overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    <img src={post.image} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
                   <div className="p-6">
                     <Badge variant="secondary" className="mb-3">
                       {categories.find(c => c.id === post.category)?.label}
                     </Badge>
-                    <h3 className="text-xl font-semibold font-serif mb-2 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {post.excerpt}
-                    </p>
+                    <h3 className="text-xl font-semibold font-serif mb-2 group-hover:text-primary transition-colors">{post.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{post.excerpt}</p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3.5 w-3.5" />
-                          {post.author}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {post.date}
-                        </span>
+                        <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" />{post.author}</span>
+                        <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{post.date}</span>
                       </div>
                       <span>{post.readTime}</span>
                     </div>
@@ -196,13 +179,10 @@ export default function BlogPage() {
           </section>
         )}
 
-        {/* Regular Posts */}
         <section>
-          <h2 className="text-xl font-semibold font-serif mb-6">Усі статті</h2>
+          <h2 className="text-xl font-semibold font-serif mb-6">{t.blog.all_articles}</h2>
           {regularPosts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Статей за вашим запитом не знайдено
-            </div>
+            <div className="text-center py-12 text-muted-foreground">{t.blog.no_results}</div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {regularPosts.map((post, i) => (
@@ -214,26 +194,18 @@ export default function BlogPage() {
                   className="group relative overflow-hidden rounded-xl border border-border bg-card hover:shadow-lg transition-shadow"
                 >
                   <div className="aspect-[4/3] overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    <img src={post.image} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
                   <div className="p-5">
                     <Badge variant="outline" className="mb-2 text-xs">
                       {categories.find(c => c.id === post.category)?.label}
                     </Badge>
-                    <h3 className="font-semibold font-serif mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {post.excerpt}
-                    </p>
+                    <h3 className="font-semibold font-serif mb-2 line-clamp-2 group-hover:text-primary transition-colors">{post.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{post.excerpt}</p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{post.date}</span>
                       <span className="flex items-center gap-1 text-primary font-medium">
-                        Читати <ArrowRight className="h-3 w-3" />
+                        {t.blog.read} <ArrowRight className="h-3 w-3" />
                       </span>
                     </div>
                   </div>
