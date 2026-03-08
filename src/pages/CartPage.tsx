@@ -4,9 +4,11 @@ import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ArrowRight, Shield, Shopp
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/contexts/CartContext";
+import { useLanguage } from "@/i18n";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
+  const { t } = useLanguage();
 
   if (items.length === 0) {
     return (
@@ -15,10 +17,10 @@ export default function CartPage() {
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-secondary">
             <ShoppingBag className="h-10 w-10 text-muted-foreground" />
           </div>
-          <h1 className="mb-2 text-2xl font-bold">Кошик порожній</h1>
-          <p className="mb-6 text-muted-foreground">Додайте товари з маркету</p>
+          <h1 className="mb-2 text-2xl font-bold">{t.cart.empty}</h1>
+          <p className="mb-6 text-muted-foreground">{t.cart.empty_desc}</p>
           <Button asChild>
-            <Link to="/market"><ArrowLeft className="mr-2 h-4 w-4" /> Перейти до маркету</Link>
+            <Link to="/market"><ArrowLeft className="mr-2 h-4 w-4" /> {t.cart.go_to_market}</Link>
           </Button>
         </motion.div>
       </div>
@@ -29,12 +31,11 @@ export default function CartPage() {
     <div className="py-10 lg:py-16">
       <div className="container">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="mb-2 text-3xl font-bold">Кошик</h1>
-          <p className="mb-8 text-muted-foreground">{totalItems} {totalItems === 1 ? "товар" : "товарів"}</p>
+          <h1 className="mb-2 text-3xl font-bold">{t.cart.title}</h1>
+          <p className="mb-8 text-muted-foreground">{totalItems} {t.cart.items}</p>
         </motion.div>
 
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* Items */}
           <div className="lg:col-span-2 space-y-4">
             {items.map((item, i) => (
               <motion.div
@@ -77,45 +78,44 @@ export default function CartPage() {
             ))}
             <div className="flex justify-between pt-2">
               <Button variant="ghost" size="sm" onClick={clearCart} className="text-muted-foreground hover:text-destructive">
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Очистити кошик
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> {t.cart.clear}
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/market"><ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Продовжити покупки</Link>
+                <Link to="/market"><ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> {t.cart.continue_shopping}</Link>
               </Button>
             </div>
           </div>
 
-          {/* Summary */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.15 }}
           >
             <div className="sticky top-20 rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-xl" style={{ boxShadow: "var(--card-shadow)" }}>
-              <h2 className="mb-4 text-lg font-semibold font-sans">Підсумок</h2>
+              <h2 className="mb-4 text-lg font-semibold font-sans">{t.cart.summary}</h2>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Товари ({totalItems})</span>
+                  <span className="text-muted-foreground">{t.cart.products} ({totalItems})</span>
                   <span className="font-medium">€{totalPrice.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Доставка</span>
-                  <span className="text-xs text-muted-foreground">розрах. при оформленні</span>
+                  <span className="text-muted-foreground">{t.cart.shipping}</span>
+                  <span className="text-xs text-muted-foreground">{t.cart.shipping_calc}</span>
                 </div>
               </div>
               <Separator className="my-4" />
               <div className="flex justify-between text-lg font-bold">
-                <span>Разом</span>
+                <span>{t.cart.total}</span>
                 <span className="text-primary font-sans">€{totalPrice.toLocaleString()}</span>
               </div>
               <Button className="mt-5 w-full gap-2" size="lg" asChild>
                 <Link to="/checkout">
-                  Оформити замовлення
+                  {t.cart.checkout}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-                <Shield className="h-3 w-3" /> Безпечна оплата через Stripe
+                <Shield className="h-3 w-3" /> {t.cart.secure_payment}
               </p>
             </div>
           </motion.div>
