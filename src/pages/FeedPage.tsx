@@ -23,11 +23,18 @@ const sortOptions: { value: SortMode; label: string; icon: React.ElementType }[]
 ];
 
 export default function FeedPage() {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<FeedPost[]>(samplePosts);
   const [sort, setSort] = useState<SortMode>("hot");
   const [search, setSearch] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
   const [newPostText, setNewPostText] = useState("");
+
+  const sortOpts: { value: SortMode; label: string; icon: React.ElementType }[] = [
+    { value: "hot", label: t.feed.hot, icon: Flame },
+    { value: "new", label: t.feed.new, icon: Clock },
+    { value: "top", label: t.feed.top, icon: TrendingUp },
+  ];
 
   const filtered = useMemo(() => {
     let list = [...posts];
