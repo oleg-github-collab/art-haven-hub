@@ -281,7 +281,7 @@ export default function PricingPage() {
                   <Badge className="absolute -top-2.5 bg-primary text-primary-foreground font-sans text-[10px]">{opt.discount}</Badge>
                 )}
                 <p className="mb-1 text-sm font-medium text-muted-foreground">
-                  {durationLabels[opt.duration]?.[language] || opt.duration}
+                  {durationLabels[opt.duration]?.[lang] || opt.duration}
                 </p>
                 <p className="mb-4 text-3xl font-bold font-sans">€{opt.price}</p>
                 <Button variant="outline" size="sm" className="w-full font-sans" onClick={() => handleBoost(opt.duration)}>
