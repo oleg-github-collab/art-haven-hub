@@ -48,7 +48,7 @@ export default function MarketPage() {
     e.preventDefault();
     e.stopPropagation();
     addItem({ id: item.id, title: item.title, price: item.price, priceNum: item.priceNum, seller: item.seller, emoji: item.emoji });
-    toast.success("Додано до кошика");
+    toast.success(t.market.added_to_cart);
   }, [addItem]);
 
   const filtered = useMemo(() => {
