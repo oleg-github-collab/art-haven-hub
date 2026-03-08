@@ -32,7 +32,7 @@ const durationLabels: Record<string, Record<string, string>> = {
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
-  const { t, language } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const plans = [
     {
