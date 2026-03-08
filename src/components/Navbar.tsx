@@ -1,66 +1,119 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X, Search, Bell, MessageCircle, User, Globe, ShoppingCart } from "lucide-react";
+import { Menu, X, Search, Bell, MessageCircle, User, Globe, ShoppingCart, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { label: "Головна", href: "/" },
   { label: "Стрічка", href: "/feed" },
   { label: "Дошка", href: "/board" },
-  { label: "Месенджер", href: "/messenger" },
   { label: "Маркет", href: "/market" },
+  { label: "Митці", href: "/artists" },
+  { label: "Події", href: "/events" },
+  { label: "Тарифи", href: "/pricing" },
+];
+
+const languages = [
+  { code: "uk", label: "Українська", flag: "🇺🇦" },
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
 ];
 
 export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
+  const [currentLang, setCurrentLang] = useState("uk");
+
+  const currentFlag = languages.find(l => l.code === currentLang)?.flag || "🇺🇦";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="container flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-2xl">
+      <div className="container flex h-14 items-center justify-between gap-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <span className="text-lg font-bold text-primary-foreground font-serif">М</span>
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary shadow-md group-hover:shadow-lg transition-shadow">
+            <Palette className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="hidden text-xl font-semibold font-serif sm:block">Мистецтво</span>
+          <div className="hidden sm:flex flex-col leading-none">
+            <span className="text-base font-bold font-serif tracking-tight">Мистецтво</span>
+            <span className="text-[10px] text-muted-foreground font-sans -mt-0.5">Ukrainian Art Platform</span>
+          </div>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
-                location.pathname === item.href
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-0.5 lg:flex">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="relative px-3 py-1.5 text-sm font-medium transition-colors rounded-lg"
+              >
+                <span className={isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}>
+                  {item.label}
+                </span>
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    className="absolute inset-x-1 -bottom-[13px] h-0.5 rounded-full bg-primary"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Search className="h-4.5 w-4.5" />
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="hidden sm:flex h-8 w-8">
+            <Search className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Bell className="h-4.5 w-4.5" />
+          <Button variant="ghost" size="icon" className="hidden sm:flex h-8 w-8 relative">
+            <Bell className="h-4 w-4" />
+            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />
           </Button>
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <MessageCircle className="h-4.5 w-4.5" />
+          <Button variant="ghost" size="icon" className="hidden sm:flex h-8 w-8" asChild>
+            <Link to="/messenger">
+              <MessageCircle className="h-4 w-4" />
+            </Link>
           </Button>
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Globe className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="relative hidden sm:flex" asChild>
+
+          {/* Language Picker */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="hidden sm:flex h-8 w-8 text-base">
+                {currentFlag}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[160px]">
+              {languages.map(lang => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setCurrentLang(lang.code)}
+                  className={currentLang === lang.code ? "bg-accent" : ""}
+                >
+                  <span className="mr-2">{lang.flag}</span>
+                  {lang.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Cart */}
+          <Button variant="ghost" size="icon" className="hidden sm:flex h-8 w-8 relative" asChild>
             <Link to="/cart">
               <ShoppingCart className="h-4 w-4" />
               {totalItems > 0 && (
@@ -70,14 +123,26 @@ export default function Navbar() {
               )}
             </Link>
           </Button>
-          <Button size="sm" className="hidden sm:flex">
-            <User className="mr-1.5 h-4 w-4" />
+
+          {/* Dashboard */}
+          <Button variant="ghost" size="sm" className="hidden md:flex h-8 text-xs gap-1.5" asChild>
+            <Link to="/dashboard">
+              <Palette className="h-3.5 w-3.5" />
+              Панель
+            </Link>
+          </Button>
+
+          {/* Auth */}
+          <Button size="sm" className="hidden sm:flex h-8 text-xs">
+            <User className="mr-1 h-3.5 w-3.5" />
             Увійти
           </Button>
+
+          {/* Mobile toggle */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="lg:hidden h-8 w-8"
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -92,9 +157,9 @@ export default function Navbar() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-border md:hidden"
+            className="overflow-hidden border-t border-border/60 lg:hidden bg-background/95 backdrop-blur-xl"
           >
-            <nav className="container flex flex-col gap-1 py-4">
+            <nav className="container flex flex-col gap-0.5 py-3">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -109,6 +174,14 @@ export default function Navbar() {
                   {item.label}
                 </Link>
               ))}
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent/60 flex items-center gap-2"
+              >
+                <Palette className="h-4 w-4" />
+                Панель митця
+              </Link>
               <div className="mt-2 flex items-center gap-2 px-4">
                 <Button size="sm" className="flex-1">
                   <User className="mr-1.5 h-4 w-4" />
