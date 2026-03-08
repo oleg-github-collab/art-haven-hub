@@ -284,8 +284,8 @@ export default function MarketPage() {
 
         {filtered.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20 text-center">
-            <p className="text-lg font-medium text-muted-foreground">Нічого не знайдено</p>
-            <p className="mt-1 text-sm text-muted-foreground">Спробуйте змінити пошуковий запит або фільтри</p>
+            <p className="text-lg font-medium text-muted-foreground">{t.market.nothing_found}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t.market.try_change}</p>
           </motion.div>
         )}
       </div>
