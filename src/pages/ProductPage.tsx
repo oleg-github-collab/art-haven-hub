@@ -218,6 +218,12 @@ export default function ProductPage() {
                 </div>
 
                 <div className="flex gap-2">
+                  {isArtwork && (
+                    <Button variant="outline" className="flex-1 gap-2" onClick={() => setArOpen(true)}>
+                      <Camera className="h-4 w-4" />
+                      AR Примірка
+                    </Button>
+                  )}
                   <Button variant="outline" className="flex-1 gap-2">
                     <MessageCircle className="h-4 w-4" />
                     Написати
