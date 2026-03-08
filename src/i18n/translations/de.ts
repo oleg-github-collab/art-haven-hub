@@ -195,6 +195,10 @@ const de: Translations = {
     plan_gallery: "Galerie",
     plan_gallery_desc: "Für Galerien und Profis",
     popular: "Beliebt",
+    features_start: ["Bis zu 5 Anzeigen", "Basisprofil", "Marktzugang", "Messenger", "Feed & Pinnwand"],
+    features_pro: ["Bis zu 30 Anzeigen", "Erweitertes Profil", "3 Top-Anzeigen/Monat", "Basisanalytik", "Prioritäts-Support", "\"Pro\"-Abzeichen", "Reduzierte Provision -1%"],
+    features_gallery: ["Unbegrenzte Anzeigen", "Premium-Profil", "10 Top-Anzeigen/Monat", "Erweiterte Analytik", "24/7 Prioritäts-Support", "\"Galerie\"-Abzeichen", "Reduzierte Provision -3%", "API-Zugang", "Multi-User"],
+    limits_start: ["Keine Top-Anzeigen", "Keine Analytik", "Verkaufsprovision"],
   },
   about: {
     title: "Über die Plattform Mystetstvo",

@@ -195,6 +195,10 @@ const fr: Translations = {
     plan_gallery: "Galerie",
     plan_gallery_desc: "Pour les galeries et professionnels",
     popular: "Populaire",
+    features_start: ["Jusqu'à 5 annonces", "Profil de base", "Accès au marché", "Messagerie", "Fil et Tableau"],
+    features_pro: ["Jusqu'à 30 annonces", "Profil étendu", "3 annonces top/mois", "Analytique de base", "Support prioritaire", "Badge \"Pro\"", "Commission réduite -1%"],
+    features_gallery: ["Annonces illimitées", "Profil premium", "10 annonces top/mois", "Analytique avancée", "Support prioritaire 24/7", "Badge \"Galerie\"", "Commission réduite -3%", "Accès API", "Multi-utilisateur"],
+    limits_start: ["Pas d'annonces top", "Pas d'analytique", "Commission sur les ventes"],
   },
   about: {
     title: "À propos de la plateforme Mystetstvo",
