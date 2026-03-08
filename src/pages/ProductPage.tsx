@@ -19,6 +19,9 @@ export default function ProductPage() {
   const [liked, setLiked] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [arOpen, setArOpen] = useState(false);
+
+  const isArtwork = ["painting", "photo", "ceramics"].includes(item?.category ?? "");
 
   if (!item) {
     return (
