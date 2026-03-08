@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, ShoppingBag, MapPin, Star, Heart, Eye, Grid3X3, List, X, ChevronDown, MessageCircle, Share2, Clock, Shield, Tag, ShoppingCart, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
