@@ -181,7 +181,7 @@ export default function FeedPage() {
           </AnimatePresence>
           {filtered.length === 0 && (
             <div className="py-16 text-center text-muted-foreground">
-              Нічого не знайдено
+              {t.feed.nothing_found}
             </div>
           )}
         </div>
