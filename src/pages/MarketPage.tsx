@@ -121,7 +121,7 @@ export default function MarketPage() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5 relative">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
-                Фільтри
+                {t.market.filters}
                 {activeFiltersCount > 0 && (
                   <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                     {activeFiltersCount}
