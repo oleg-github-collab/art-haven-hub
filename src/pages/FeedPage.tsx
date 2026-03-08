@@ -5,6 +5,7 @@ import {
   Smile, MoreHorizontal, BadgeCheck, TrendingUp, Clock, Flame,
   Plus, Search, Filter, X, ChevronDown, ChevronUp,
 } from "lucide-react";
+import { useLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
