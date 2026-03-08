@@ -16,12 +16,6 @@ import { samplePosts, type FeedPost, type FeedComment } from "@/data/feedData";
 
 type SortMode = "hot" | "new" | "top";
 
-const sortOptions: { value: SortMode; label: string; icon: React.ElementType }[] = [
-  { value: "hot", label: "Гарячі", icon: Flame },
-  { value: "new", label: "Нові", icon: Clock },
-  { value: "top", label: "Топ", icon: TrendingUp },
-];
-
 export default function FeedPage() {
   const { t } = useLanguage();
   const [posts, setPosts] = useState<FeedPost[]>(samplePosts);
