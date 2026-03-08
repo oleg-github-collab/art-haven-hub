@@ -16,6 +16,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import FeedPage from "./pages/FeedPage";
 import MessengerPage from "./pages/MessengerPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import PricingPage from "./pages/PricingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
