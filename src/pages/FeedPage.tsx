@@ -111,7 +111,7 @@ export default function FeedPage() {
             />
           </div>
           <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
-            {sortOptions.map((s) => (
+            {sortOpts.map((s) => (
               <button
                 key={s.value}
                 onClick={() => setSort(s.value)}
