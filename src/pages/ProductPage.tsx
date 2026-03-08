@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, Heart, Share2, ShoppingCart, MapPin, Eye, Clock, Shield, Truck, RotateCcw, Tag, MessageCircle, Gavel, ChevronRight, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Star, Heart, Share2, ShoppingCart, MapPin, Eye, Clock, Shield, Truck, RotateCcw, Tag, MessageCircle, Gavel, ChevronRight, Plus, Minus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
 import { getItemById, items } from "@/data/marketItems";
 import { toast } from "sonner";
+import ARPreview from "@/components/ARPreview";
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -18,6 +19,9 @@ export default function ProductPage() {
   const [liked, setLiked] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [arOpen, setArOpen] = useState(false);
+
+  const isArtwork = ["painting", "photo", "ceramics"].includes(item?.category ?? "");
 
   if (!item) {
     return (
@@ -80,6 +84,15 @@ export default function ProductPage() {
               >
                 <Heart className={`h-5 w-5 ${liked ? "fill-primary" : ""}`} />
               </button>
+              {isArtwork && (
+                <button
+                  onClick={() => setArOpen(true)}
+                  className="absolute right-4 top-16 flex h-10 w-10 items-center justify-center rounded-full bg-primary/90 text-primary-foreground backdrop-blur-md transition-all hover:bg-primary shadow-lg"
+                  title="AR Примірка"
+                >
+                  <Camera className="h-5 w-5" />
+                </button>
+              )}
             </div>
 
             {/* Tabs: Description / Reviews */}
@@ -205,6 +218,12 @@ export default function ProductPage() {
                 </div>
 
                 <div className="flex gap-2">
+                  {isArtwork && (
+                    <Button variant="outline" className="flex-1 gap-2" onClick={() => setArOpen(true)}>
+                      <Camera className="h-4 w-4" />
+                      AR Примірка
+                    </Button>
+                  )}
                   <Button variant="outline" className="flex-1 gap-2">
                     <MessageCircle className="h-4 w-4" />
                     Написати
@@ -296,6 +315,16 @@ export default function ProductPage() {
           </div>
         )}
       </div>
+
+      {/* AR Preview */}
+      <ARPreview
+        open={arOpen}
+        onClose={() => setArOpen(false)}
+        emoji={item.emoji}
+        title={item.title}
+        widthCm={item.artworkWidth ?? 60}
+        heightCm={item.artworkHeight ?? 80}
+      />
     </div>
   );
 }

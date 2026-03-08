@@ -26,6 +26,9 @@ export type MarketItem = {
   shippingOptions?: string[];
   returnPolicy?: string;
   reviews?: { author: string; rating: number; text: string; date: string }[];
+  /** artwork dimensions in cm for AR preview */
+  artworkWidth?: number;
+  artworkHeight?: number;
 };
 
 export const categories = [
@@ -58,6 +61,7 @@ export const items: MarketItem[] = [
     description: "Оригінальна робота олійними фарбами. Абстрактний пейзаж, натхненний Карпатськими горами.",
     fullDescription: "Оригінальна робота олійними фарбами на полотні 80×100 см. Абстрактний пейзаж, натхненний Карпатськими горами. Полотно на підрамнику, готове до експозиції. Сертифікат автентичності додається. Техніка: масло, мастихін, лесировка. Рама не включена.",
     tags: ["олія", "абстракція", "пейзаж", "оригінал"], condition: "Нова робота", featured: true, date: "2 дні тому",
+    artworkWidth: 100, artworkHeight: 80,
     views: 156, likes: 24, biddable: true, currentBid: 980, bidCount: 5,
     shippingOptions: ["Кур'єр по Європі (€30)", "Самовивіз — Берлін"],
     returnPolicy: "Повернення протягом 14 днів за умови збереження стану",
@@ -84,6 +88,7 @@ export const items: MarketItem[] = [
     description: "Лімітований фотопринт на музейному папері Hahnemühle. Тираж 25 примірників.",
     fullDescription: "Лімітований фотопринт на музейному папері Hahnemühle Photo Rag 308 г/м². Тираж 25 примірників, нумерація та підпис автора. Зображення зимових Карпат у золотому світлі заходу сонця. Сертифікат автентичності включено.",
     tags: ["фото", "принт", "лімітований", "Карпати"], condition: "Нова", featured: true, date: "1 день тому",
+    artworkWidth: 90, artworkHeight: 60,
     views: 234, likes: 45, biddable: true, currentBid: 300, bidCount: 8,
     shippingOptions: ["Безкоштовна доставка по Європі"],
     reviews: [
