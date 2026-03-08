@@ -84,6 +84,15 @@ export default function ProductPage() {
               >
                 <Heart className={`h-5 w-5 ${liked ? "fill-primary" : ""}`} />
               </button>
+              {isArtwork && (
+                <button
+                  onClick={() => setArOpen(true)}
+                  className="absolute right-4 top-16 flex h-10 w-10 items-center justify-center rounded-full bg-primary/90 text-primary-foreground backdrop-blur-md transition-all hover:bg-primary shadow-lg"
+                  title="AR Примірка"
+                >
+                  <Camera className="h-5 w-5" />
+                </button>
+              )}
             </div>
 
             {/* Tabs: Description / Reviews */}
