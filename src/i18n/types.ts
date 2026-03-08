@@ -384,6 +384,10 @@ export interface Translations {
     status_promoted: string;
     status_sold: string;
     status_draft: string;
+    analytics: string;
+    views_week: string;
+    sales_dynamics: string;
+    sales: string;
   };
   messenger: {
     title: string;

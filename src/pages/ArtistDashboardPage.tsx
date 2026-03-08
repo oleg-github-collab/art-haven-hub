@@ -187,6 +187,15 @@ export default function ArtistDashboardPage() {
           <StatCard label={d.revenue} value={`€${stats.revenue.toLocaleString()}`} icon={Euro} accent="bg-primary/10 text-primary" />
         </div>
 
+        {/* Analytics Charts */}
+        <AnalyticsCharts labels={{
+          analytics: d.analytics,
+          views_week: d.views_week,
+          sales_dynamics: d.sales_dynamics,
+          views: d.views,
+          sales: d.sales,
+        }} />
+
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <Select value={filter} onValueChange={setFilter}>
