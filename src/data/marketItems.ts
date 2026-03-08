@@ -26,6 +26,9 @@ export type MarketItem = {
   shippingOptions?: string[];
   returnPolicy?: string;
   reviews?: { author: string; rating: number; text: string; date: string }[];
+  /** artwork dimensions in cm for AR preview */
+  artworkWidth?: number;
+  artworkHeight?: number;
 };
 
 export const categories = [

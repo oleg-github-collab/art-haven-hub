@@ -315,6 +315,16 @@ export default function ProductPage() {
           </div>
         )}
       </div>
+
+      {/* AR Preview */}
+      <ARPreview
+        open={arOpen}
+        onClose={() => setArOpen(false)}
+        emoji={item.emoji}
+        title={item.title}
+        widthCm={item.artworkWidth ?? 60}
+        heightCm={item.artworkHeight ?? 80}
+      />
     </div>
   );
 }
