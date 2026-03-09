@@ -334,6 +334,17 @@ export interface Translations {
     no_saved: string;
     add_item: string;
     joined: string;
+    edit_profile_title: string;
+    edit_profile_desc: string;
+    profile_saved: string;
+    change_avatar: string;
+    name_label: string;
+    bio_label: string;
+    location_label: string;
+    website_label: string;
+    tags_label: string;
+    add_tag: string;
+    save: string;
   };
   dashboard: {
     title: string;
@@ -388,6 +399,9 @@ export interface Translations {
     views_week: string;
     sales_dynamics: string;
     sales: string;
+    period_week: string;
+    period_month: string;
+    period_year: string;
   };
   messenger: {
     title: string;

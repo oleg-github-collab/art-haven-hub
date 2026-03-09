@@ -21,10 +21,11 @@ interface ProfileInfoProps {
   followingCount: number;
   postsCount: number;
   onToggleFollow: () => void;
+  onEditProfile?: () => void;
 }
 
 export default function ProfileInfo({
-  profile, following, followerCount, followingCount, postsCount, onToggleFollow,
+  profile, following, followerCount, followingCount, postsCount, onToggleFollow, onEditProfile,
 }: ProfileInfoProps) {
   const { t } = useLanguage();
 
@@ -46,7 +47,7 @@ export default function ProfileInfo({
         <div className="flex gap-2">
           {profile.isOwn ? (
             <>
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full">
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={onEditProfile}>
                 <Edit3 className="h-3.5 w-3.5" />{t.profile.edit}
               </Button>
               <Button variant="outline" size="icon" className="h-9 w-9 rounded-full">
