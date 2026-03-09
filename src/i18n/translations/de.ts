@@ -399,6 +399,9 @@ const de: Translations = {
     views_week: "Aufrufe pro Woche",
     sales_dynamics: "Verkaufsdynamik",
     sales: "Verkäufe",
+    period_week: "Woche",
+    period_month: "Monat",
+    period_year: "Jahr",
   },
   messenger: {
     title: "Nachrichten",

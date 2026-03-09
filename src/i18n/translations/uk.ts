@@ -399,6 +399,9 @@ const uk: Translations = {
     views_week: "Перегляди за тижні",
     sales_dynamics: "Динаміка продажів",
     sales: "Продажі",
+    period_week: "Тиждень",
+    period_month: "Місяць",
+    period_year: "Рік",
   },
   messenger: {
     title: "Повідомлення",

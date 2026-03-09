@@ -194,6 +194,9 @@ export default function ArtistDashboardPage() {
           sales_dynamics: d.sales_dynamics,
           views: d.views,
           sales: d.sales,
+          period_week: d.period_week,
+          period_month: d.period_month,
+          period_year: d.period_year,
         }} />
 
         {/* Toolbar */}

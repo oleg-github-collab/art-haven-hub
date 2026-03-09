@@ -399,6 +399,9 @@ export interface Translations {
     views_week: string;
     sales_dynamics: string;
     sales: string;
+    period_week: string;
+    period_month: string;
+    period_year: string;
   };
   messenger: {
     title: string;

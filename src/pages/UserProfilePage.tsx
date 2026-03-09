@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import ProfileCover from "@/components/profile/ProfileCover";
 import ProfileInfo from "@/components/profile/ProfileInfo";
 import ProfileTabs from "@/components/profile/ProfileTabs";
+import EditProfileDialog from "@/components/profile/EditProfileDialog";
 
 interface ProfileData {
   name: string;
@@ -73,28 +74,50 @@ const sampleReviews = [
 export default function ProfilePage_() {
   const { handle } = useParams();
   const profileKey = handle || "me";
-  const profile = profiles[profileKey] || profiles["me"];
+  const defaultProfile = profiles[profileKey] || profiles["me"];
 
-  const [following, setFollowing] = useState(profile.isFollowing);
-  const [followerCount, setFollowerCount] = useState(profile.followers);
+  const [profileData, setProfileData] = useState(defaultProfile);
+  const [following, setFollowing] = useState(defaultProfile.isFollowing);
+  const [followerCount, setFollowerCount] = useState(defaultProfile.followers);
+  const [editOpen, setEditOpen] = useState(false);
 
   const toggleFollow = () => {
     setFollowing((f) => !f);
     setFollowerCount((c) => (following ? c - 1 : c + 1));
   };
 
+  const handleSaveProfile = (data: { name: string; bio: string; location: string; website: string; tags: string[] }) => {
+    setProfileData((prev) => ({ ...prev, ...data }));
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <ProfileCover name={profile.name} coverColor={profile.coverColor} isOwn={profile.isOwn} />
+      <ProfileCover name={profileData.name} coverColor={profileData.coverColor} isOwn={profileData.isOwn} />
       <ProfileInfo
-        profile={profile}
+        profile={profileData}
         following={following}
         followerCount={followerCount}
-        followingCount={profile.following}
-        postsCount={profile.posts}
+        followingCount={profileData.following}
+        postsCount={profileData.posts}
         onToggleFollow={toggleFollow}
+        onEditProfile={() => setEditOpen(true)}
       />
-      <ProfileTabs works={sampleWorks} reviews={sampleReviews} isOwn={profile.isOwn} />
+      <ProfileTabs works={sampleWorks} reviews={sampleReviews} isOwn={profileData.isOwn} />
+
+      {profileData.isOwn && (
+        <EditProfileDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          profile={{
+            name: profileData.name,
+            bio: profileData.bio,
+            location: profileData.location,
+            website: profileData.website,
+            tags: profileData.tags,
+          }}
+          onSave={handleSaveProfile}
+        />
+      )}
     </div>
   );
 }
