@@ -21,6 +21,7 @@ interface ProfileInfoProps {
   followingCount: number;
   postsCount: number;
   onToggleFollow: () => void;
+  onEditProfile?: () => void;
 }
 
 export default function ProfileInfo({
