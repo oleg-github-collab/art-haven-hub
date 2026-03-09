@@ -25,7 +25,7 @@ interface ProfileInfoProps {
 }
 
 export default function ProfileInfo({
-  profile, following, followerCount, followingCount, postsCount, onToggleFollow,
+  profile, following, followerCount, followingCount, postsCount, onToggleFollow, onEditProfile,
 }: ProfileInfoProps) {
   const { t } = useLanguage();
 
