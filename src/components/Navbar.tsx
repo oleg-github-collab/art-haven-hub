@@ -134,9 +134,11 @@ export default function Navbar() {
           </Button>
 
           {/* Auth */}
-          <Button size="sm" className="hidden sm:flex h-8 text-xs">
-            <User className="mr-1 h-3.5 w-3.5" />
-            {t.nav.login}
+          <Button size="sm" className="hidden sm:flex h-8 text-xs" asChild>
+            <Link to="/login">
+              <User className="mr-1 h-3.5 w-3.5" />
+              {t.nav.login}
+            </Link>
           </Button>
 
           {/* Mobile toggle */}
