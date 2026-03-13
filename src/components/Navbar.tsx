@@ -134,9 +134,11 @@ export default function Navbar() {
           </Button>
 
           {/* Auth */}
-          <Button size="sm" className="hidden sm:flex h-8 text-xs">
-            <User className="mr-1 h-3.5 w-3.5" />
-            {t.nav.login}
+          <Button size="sm" className="hidden sm:flex h-8 text-xs" asChild>
+            <Link to="/login">
+              <User className="mr-1 h-3.5 w-3.5" />
+              {t.nav.login}
+            </Link>
           </Button>
 
           {/* Mobile toggle */}
@@ -200,9 +202,11 @@ export default function Navbar() {
                 ))}
               </div>
               <div className="mt-2 flex items-center gap-2 px-4">
-                <Button size="sm" className="flex-1">
-                  <User className="mr-1.5 h-4 w-4" />
-                  {t.nav.login}
+                <Button size="sm" className="flex-1" asChild>
+                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                    <User className="mr-1.5 h-4 w-4" />
+                    {t.nav.login}
+                  </Link>
                 </Button>
               </div>
             </nav>

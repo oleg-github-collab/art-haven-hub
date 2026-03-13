@@ -27,6 +27,11 @@ import PrivacyPage from "./pages/PrivacyPage";
 import CookiesPage from "./pages/CookiesPage";
 import RefundsPage from "./pages/RefundsPage";
 import HelpPage from "./pages/HelpPage";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
+import RoomVisualizerPage from "./pages/RoomVisualizerPage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import PaymentErrorPage from "./pages/PaymentErrorPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +67,11 @@ const App = () => (
               <Route path="/cookies" element={<CookiesPage />} />
               <Route path="/refunds" element={<RefundsPage />} />
               <Route path="/help" element={<HelpPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/room-visualizer" element={<RoomVisualizerPage />} />
+              <Route path="/payment/success" element={<PaymentSuccessPage />} />
+              <Route path="/payment/error" element={<PaymentErrorPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
