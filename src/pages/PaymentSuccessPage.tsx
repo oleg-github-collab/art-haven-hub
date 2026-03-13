@@ -20,14 +20,15 @@ export default function PaymentSuccessPage() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: "spring", stiffness: 300, damping: 15 }}
-          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.4, type: "spring" }}
           >
-            <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
+            <CheckCircle className="h-10 w-10 text-primary" />
+          </motion.div>
           </motion.div>
         </motion.div>
 

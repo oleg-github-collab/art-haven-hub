@@ -202,9 +202,11 @@ export default function Navbar() {
                 ))}
               </div>
               <div className="mt-2 flex items-center gap-2 px-4">
-                <Button size="sm" className="flex-1">
-                  <User className="mr-1.5 h-4 w-4" />
-                  {t.nav.login}
+                <Button size="sm" className="flex-1" asChild>
+                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                    <User className="mr-1.5 h-4 w-4" />
+                    {t.nav.login}
+                  </Link>
                 </Button>
               </div>
             </nav>
