@@ -29,7 +29,6 @@ export default function PaymentSuccessPage() {
           >
             <CheckCircle className="h-10 w-10 text-primary" />
           </motion.div>
-          </motion.div>
         </motion.div>
 
         {/* Confetti dots */}
