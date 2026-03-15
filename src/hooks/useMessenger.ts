@@ -23,6 +23,14 @@ export interface ConversationMember {
   role: string;
 }
 
+export interface MessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -32,6 +40,9 @@ export interface Message {
   attachment_url?: string;
   is_read: boolean;
   created_at: string;
+  reply_to?: Message;
+  forwarded_from?: string;
+  reactions?: MessageReaction[];
   sender?: {
     id: string;
     display_name: string;
@@ -60,7 +71,7 @@ export function useMessages(conversationId: string) {
     queryKey: ["messages", conversationId],
     queryFn: () => apiGet<Message[]>(`/api/v1/conversations/${conversationId}/messages`),
     enabled: !!conversationId,
-    refetchInterval: 5000, // poll every 5s as fallback
+    refetchInterval: 5000,
   });
 }
 
@@ -116,5 +127,29 @@ export function useMuteConversation() {
     mutationFn: ({ id, isMuted }: { id: string; isMuted: boolean }) =>
       apiPut(`/api/v1/conversations/${id}/mute`, { is_muted: !isMuted }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+export function useToggleReaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      apiPost<{ added: boolean }>(`/api/v1/messages/${messageId}/reactions`, { emoji }),
+    onSuccess: (_, vars) => {
+      // Invalidate messages for the conversation containing this message
+      qc.invalidateQueries({ queryKey: ["messages"] });
+    },
+  });
+}
+
+export function useForwardMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId, conversationIds }: { messageId: string; conversationIds: string[] }) =>
+      apiPost<Message[]>(`/api/v1/messages/${messageId}/forward`, { conversation_ids: conversationIds }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["messages"] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
   });
 }
