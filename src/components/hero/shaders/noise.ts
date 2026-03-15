@@ -1,6 +1,6 @@
 /**
  * 3D Simplex Noise GLSL — Stefan Gustavson's implementation (public domain)
- * Plus derived functions: FBM, Ridge Noise, Warped FBM
+ * Plus derived functions: FBM, Ridge Noise, Warped FBM, Domain Warping, Curl Noise
  */
 export const noiseGLSL = /* glsl */ `
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -73,7 +73,7 @@ export const noiseGLSL = /* glsl */ `
     float amplitude = 1.0;
     float frequency = 1.0;
     float maxValue = 0.0;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       total += snoise(v * frequency) * amplitude;
       maxValue += amplitude;
       amplitude *= persistence;
@@ -95,6 +95,31 @@ export const noiseGLSL = /* glsl */ `
       fbm(p + vec3(5.2, 1.3, 2.8), 0.5, 2.0),
       fbm(p + vec3(1.7, 9.2, 3.4), 0.5, 2.0)
     );
-    return fbm(p + 4.0 * q + vec3(0.0, 0.0, time * 0.05), 0.5, 2.0);
+    vec3 r = vec3(
+      fbm(p + 4.0 * q + vec3(1.7, 9.2, time * 0.03), 0.5, 2.0),
+      fbm(p + 4.0 * q + vec3(8.3, 2.8, time * 0.04), 0.5, 2.0),
+      0.0
+    );
+    return fbm(p + 4.0 * r + vec3(0.0, 0.0, time * 0.05), 0.5, 2.0);
+  }
+
+  // Voronoi distance for cellular patterns
+  float voronoi(vec2 p) {
+    vec2 n = floor(p);
+    vec2 f = fract(p);
+    float md = 8.0;
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        vec2 g = vec2(float(i), float(j));
+        vec2 o = vec2(
+          snoise(vec3(n + g, 0.0)) * 0.5 + 0.5,
+          snoise(vec3(n + g + 100.0, 0.0)) * 0.5 + 0.5
+        );
+        vec2 r = g + o - f;
+        float d = dot(r, r);
+        md = min(md, d);
+      }
+    }
+    return sqrt(md);
   }
 `;

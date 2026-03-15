@@ -70,7 +70,7 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
-      addItem({ id: item.id, title: item.title, price: item.price, priceNum: item.priceNum, seller: item.seller, emoji: item.emoji });
+      addItem({ id: Number(item.id) || i, title: item.title, price: item.price, priceNum: item.priceNum, seller: item.seller, emoji: item.emoji });
     }
     toast.success(`${item.title} ${t.product.added_to_cart}`);
   };
