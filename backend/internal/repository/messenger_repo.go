@@ -108,6 +108,15 @@ func (r *MessengerRepo) CreateMessage(ctx context.Context, m *model.Message) err
 	return nil
 }
 
+func (r *MessengerRepo) GetMessage(ctx context.Context, id uuid.UUID) (*model.Message, error) {
+	var m model.Message
+	err := r.db.GetContext(ctx, &m, `SELECT * FROM messages WHERE id = $1`, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return &m, err
+}
+
 func (r *MessengerRepo) GetMessages(ctx context.Context, convID uuid.UUID, limit, offset int) ([]model.Message, error) {
 	var msgs []model.Message
 	err := r.db.SelectContext(ctx, &msgs,
@@ -153,6 +162,51 @@ func (r *MessengerRepo) GetUserByID(ctx context.Context, id uuid.UUID) (*model.U
 		return nil, nil
 	}
 	return &u, err
+}
+
+// --- Reactions ---
+
+func (r *MessengerRepo) AddReaction(ctx context.Context, messageID, userID uuid.UUID, emoji string) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO message_reactions (message_id, user_id, emoji)
+		 VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+		messageID, userID, emoji)
+	return err
+}
+
+func (r *MessengerRepo) RemoveReaction(ctx context.Context, messageID, userID uuid.UUID, emoji string) error {
+	_, err := r.db.ExecContext(ctx,
+		`DELETE FROM message_reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3`,
+		messageID, userID, emoji)
+	return err
+}
+
+func (r *MessengerRepo) HasReaction(ctx context.Context, messageID, userID uuid.UUID, emoji string) (bool, error) {
+	var exists bool
+	err := r.db.GetContext(ctx, &exists,
+		`SELECT EXISTS(SELECT 1 FROM message_reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3)`,
+		messageID, userID, emoji)
+	return exists, err
+}
+
+func (r *MessengerRepo) GetReactions(ctx context.Context, messageID uuid.UUID) ([]model.MessageReaction, error) {
+	var reactions []model.MessageReaction
+	err := r.db.SelectContext(ctx, &reactions,
+		`SELECT * FROM message_reactions WHERE message_id = $1 ORDER BY created_at`, messageID)
+	if reactions == nil {
+		reactions = []model.MessageReaction{}
+	}
+	return reactions, err
+}
+
+// --- Forwards ---
+
+func (r *MessengerRepo) CreateForward(ctx context.Context, f *model.MessageForward) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO message_forwards (original_message_id, forwarded_to_conv, forwarded_by)
+		 VALUES ($1, $2, $3)`,
+		f.OriginalMessageID, f.ForwardedToConv, f.ForwardedBy)
+	return err
 }
 
 func truncate(s string, maxLen int) string {

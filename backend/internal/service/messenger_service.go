@@ -29,13 +29,12 @@ type CreateConversationInput struct {
 
 type SendMessageInput struct {
 	Content     string          `json:"content" validate:"required,min=1,max=5000"`
-	MessageType string          `json:"message_type" validate:"omitempty,oneof=text image file"`
+	MessageType string          `json:"message_type" validate:"omitempty,oneof=text image file gif"`
 	Attachments json.RawMessage `json:"attachments"`
 	ReplyToID   *uuid.UUID      `json:"reply_to_id"`
 }
 
 func (s *MessengerService) CreateConversation(ctx context.Context, creatorID uuid.UUID, input *CreateConversationInput) (*model.Conversation, error) {
-	// For private chats, check if one already exists
 	if input.Type == "private" && len(input.MemberIDs) == 1 {
 		existing, _ := s.messengerRepo.GetPrivateConversation(ctx, creatorID, input.MemberIDs[0])
 		if existing != nil {
@@ -53,12 +52,10 @@ func (s *MessengerService) CreateConversation(ctx context.Context, creatorID uui
 		return nil, fmt.Errorf("creating conversation: %w", err)
 	}
 
-	// Add creator as admin
 	if err := s.messengerRepo.AddMember(ctx, conv.ID, creatorID, "admin"); err != nil {
 		return nil, fmt.Errorf("adding creator: %w", err)
 	}
 
-	// Add other members
 	for _, memberID := range input.MemberIDs {
 		if memberID != creatorID {
 			s.messengerRepo.AddMember(ctx, conv.ID, memberID, "member")
@@ -138,11 +135,19 @@ func (s *MessengerService) SendMessage(ctx context.Context, convID, senderID uui
 		return nil, fmt.Errorf("creating message: %w", err)
 	}
 
-	// Enrich with sender
 	sender, _ := s.messengerRepo.GetUserByID(ctx, senderID)
 	msg.Sender = sender
 
-	// Broadcast via WebSocket
+	// Enrich reply if present
+	if input.ReplyToID != nil {
+		replyMsg, _ := s.messengerRepo.GetMessage(ctx, *input.ReplyToID)
+		if replyMsg != nil {
+			replySender, _ := s.messengerRepo.GetUserByID(ctx, replyMsg.SenderID)
+			replyMsg.Sender = replySender
+			msg.ReplyTo = replyMsg
+		}
+	}
+
 	payload, _ := json.Marshal(msg)
 	s.hub.BroadcastToRoom(convID, ws.WSMessage{
 		Type:    "message.new",
@@ -166,6 +171,9 @@ func (s *MessengerService) GetMessages(ctx context.Context, convID, userID uuid.
 	for i := range msgs {
 		sender, _ := s.messengerRepo.GetUserByID(ctx, msgs[i].SenderID)
 		msgs[i].Sender = sender
+
+		reactions, _ := s.messengerRepo.GetReactions(ctx, msgs[i].ID)
+		msgs[i].Reactions = reactions
 	}
 
 	return msgs, nil
@@ -181,4 +189,107 @@ func (s *MessengerService) UpdatePin(ctx context.Context, convID, userID uuid.UU
 
 func (s *MessengerService) UpdateMute(ctx context.Context, convID, userID uuid.UUID, muted bool) error {
 	return s.messengerRepo.UpdateMute(ctx, convID, userID, muted)
+}
+
+// --- Reactions ---
+
+func (s *MessengerService) ToggleReaction(ctx context.Context, messageID, userID uuid.UUID, emoji string) (bool, error) {
+	has, err := s.messengerRepo.HasReaction(ctx, messageID, userID, emoji)
+	if err != nil {
+		return false, fmt.Errorf("checking reaction: %w", err)
+	}
+
+	if has {
+		if err := s.messengerRepo.RemoveReaction(ctx, messageID, userID, emoji); err != nil {
+			return false, fmt.Errorf("removing reaction: %w", err)
+		}
+
+		// Broadcast removal
+		msg, _ := s.messengerRepo.GetMessage(ctx, messageID)
+		if msg != nil {
+			payload, _ := json.Marshal(map[string]interface{}{
+				"message_id": messageID,
+				"user_id":    userID,
+				"emoji":      emoji,
+				"action":     "removed",
+			})
+			s.hub.BroadcastToRoom(msg.ConversationID, ws.WSMessage{
+				Type:    "reaction.update",
+				Payload: payload,
+			}, nil)
+		}
+		return false, nil
+	}
+
+	if err := s.messengerRepo.AddReaction(ctx, messageID, userID, emoji); err != nil {
+		return false, fmt.Errorf("adding reaction: %w", err)
+	}
+
+	msg, _ := s.messengerRepo.GetMessage(ctx, messageID)
+	if msg != nil {
+		payload, _ := json.Marshal(map[string]interface{}{
+			"message_id": messageID,
+			"user_id":    userID,
+			"emoji":      emoji,
+			"action":     "added",
+		})
+		s.hub.BroadcastToRoom(msg.ConversationID, ws.WSMessage{
+			Type:    "reaction.update",
+			Payload: payload,
+		}, nil)
+	}
+
+	return true, nil
+}
+
+// --- Forward ---
+
+func (s *MessengerService) ForwardMessage(ctx context.Context, messageID, userID uuid.UUID, targetConvIDs []uuid.UUID) ([]*model.Message, error) {
+	original, err := s.messengerRepo.GetMessage(ctx, messageID)
+	if err != nil || original == nil {
+		return nil, apperror.NotFound("message", messageID.String())
+	}
+
+	var forwarded []*model.Message
+	for _, convID := range targetConvIDs {
+		isMember, _ := s.messengerRepo.IsMember(ctx, convID, userID)
+		if !isMember {
+			continue
+		}
+
+		content := fmt.Sprintf("↪ Forwarded:\n%s", original.Content)
+		fwdMsg := &model.Message{
+			ConversationID: convID,
+			SenderID:       userID,
+			Content:        content,
+			MessageType:    original.MessageType,
+			Attachments:    original.Attachments,
+			ForwardedFrom:  &messageID,
+		}
+
+		if err := s.messengerRepo.CreateMessage(ctx, fwdMsg); err != nil {
+			continue
+		}
+
+		sender, _ := s.messengerRepo.GetUserByID(ctx, userID)
+		fwdMsg.Sender = sender
+
+		// Track forward
+		s.messengerRepo.CreateForward(ctx, &model.MessageForward{
+			OriginalMessageID: messageID,
+			ForwardedToConv:   convID,
+			ForwardedBy:       userID,
+		})
+
+		// Broadcast
+		payload, _ := json.Marshal(fwdMsg)
+		s.hub.BroadcastToRoom(convID, ws.WSMessage{
+			Type:    "message.new",
+			Payload: payload,
+		}, nil)
+
+		forwarded = append(forwarded, fwdMsg)
+	}
+
+	return forwarded, nil
 }
