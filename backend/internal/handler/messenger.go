@@ -32,7 +32,6 @@ func NewMessengerHandler(messengerService *service.MessengerService, hub *ws.Hub
 }
 
 func (h *MessengerHandler) WebSocket(w http.ResponseWriter, r *http.Request) {
-	// Authenticate via query param token
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		response.Error(w, http.StatusUnauthorized, "token required")
@@ -233,4 +232,68 @@ func (h *MessengerHandler) MuteConversation(w http.ResponseWriter, r *http.Reque
 	}
 
 	response.NoContent(w)
+}
+
+// --- Reactions ---
+
+func (h *MessengerHandler) ToggleReaction(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	msgID, err := uuid.Parse(chi.URLParam(r, "messageId"))
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid message ID")
+		return
+	}
+
+	var input struct {
+		Emoji string `json:"emoji" validate:"required,max=10"`
+	}
+	if err := validate.DecodeAndValidate(r, &input); err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	toggled, err := h.messengerService.ToggleReaction(r.Context(), msgID, userID, input.Emoji)
+	if err != nil {
+		response.AppError(w, err)
+		return
+	}
+
+	response.OK(w, map[string]bool{"added": toggled})
+}
+
+// --- Forward ---
+
+func (h *MessengerHandler) ForwardMessage(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	msgID, err := uuid.Parse(chi.URLParam(r, "messageId"))
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid message ID")
+		return
+	}
+
+	var input struct {
+		ConversationIDs []uuid.UUID `json:"conversation_ids" validate:"required,min=1,max=10"`
+	}
+	if err := validate.DecodeAndValidate(r, &input); err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	msgs, err := h.messengerService.ForwardMessage(r.Context(), msgID, userID, input.ConversationIDs)
+	if err != nil {
+		response.AppError(w, err)
+		return
+	}
+
+	response.Created(w, msgs)
 }
