@@ -12,17 +12,46 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { samplePosts, type FeedPost, type FeedComment } from "@/data/feedData";
+import { useFeed, useCreatePost, useLikePost, useRepostPost, useBookmarkPost, useComments, useCreateComment, type FeedPost as ApiFeedPost } from "@/hooks/useFeed";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SortMode = "hot" | "new" | "top";
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins} хв`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} год`;
+  const days = Math.floor(hrs / 24);
+  return `${days} д`;
+}
+
 export default function FeedPage() {
   const { t } = useLanguage();
-  const [posts, setPosts] = useState<FeedPost[]>(samplePosts);
+  const { user } = useAuth();
   const [sort, setSort] = useState<SortMode>("hot");
   const [search, setSearch] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
   const [newPostText, setNewPostText] = useState("");
+
+  const sortMap: Record<SortMode, string> = { hot: "hot", new: "recent", top: "top" };
+  const { data: feedPages, isLoading } = useFeed(sortMap[sort]);
+  const createPost = useCreatePost();
+  const likePost = useLikePost();
+  const repostPost = useRepostPost();
+  const bookmarkPost = useBookmarkPost();
+
+  const posts = useMemo(() => {
+    const all = feedPages?.pages?.flat() || [];
+    if (!search) return all;
+    const q = search.toLowerCase();
+    return all.filter(p =>
+      p.content.toLowerCase().includes(q) ||
+      p.author?.display_name?.toLowerCase().includes(q) ||
+      p.tags?.some(t => t.toLowerCase().includes(q))
+    );
+  }, [feedPages, search]);
 
   const sortOpts: { value: SortMode; label: string; icon: React.ElementType }[] = [
     { value: "hot", label: t.feed.hot, icon: Flame },
@@ -30,63 +59,17 @@ export default function FeedPage() {
     { value: "top", label: t.feed.top, icon: TrendingUp },
   ];
 
-  const filtered = useMemo(() => {
-    let list = [...posts];
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.content.toLowerCase().includes(q) ||
-          p.author.name.toLowerCase().includes(q) ||
-          p.tags?.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    if (sort === "new") list.sort((a, b) => a.timeAgo.localeCompare(b.timeAgo));
-    if (sort === "top") list.sort((a, b) => b.likes - a.likes);
-    if (sort === "hot") list.sort((a, b) => b.reposts + b.likes - (a.reposts + a.likes));
-    return list;
-  }, [posts, sort, search]);
-
-  const toggleLike = (id: string) =>
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p
-      )
-    );
-
-  const toggleRepost = (id: string) =>
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, reposted: !p.reposted, reposts: p.reposted ? p.reposts - 1 : p.reposts + 1 } : p
-      )
-    );
-
-  const toggleBookmark = (id: string) =>
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, bookmarked: !p.bookmarked, bookmarks: p.bookmarked ? p.bookmarks - 1 : p.bookmarks + 1 } : p
-      )
-    );
-
   const handlePublish = () => {
     if (!newPostText.trim()) return;
-    const newPost: FeedPost = {
-      id: Date.now().toString(),
-      author: { name: t.feed.you, handle: "@you", avatar: "", verified: false },
-      content: newPostText,
-      timeAgo: t.feed.just_now,
-      likes: 0,
-      comments: [],
-      reposts: 0,
-      bookmarks: 0,
-      liked: false,
-      reposted: false,
-      bookmarked: false,
-    };
-    setPosts((prev) => [newPost, ...prev]);
-    setNewPostText("");
-    setComposeOpen(false);
+    createPost.mutate({ content: newPostText }, {
+      onSuccess: () => {
+        setNewPostText("");
+        setComposeOpen(false);
+      },
+    });
   };
+
+  const userInitials = user?.display_name?.split(" ").map(w => w[0]).join("").slice(0, 2) || "?";
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,7 +115,7 @@ export default function FeedPage() {
         <div className="mb-6 rounded-xl border border-border bg-card p-4">
           <div className="flex gap-3">
             <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">В</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <Textarea
@@ -150,7 +133,7 @@ export default function FeedPage() {
                     <Smile className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
-                <Button size="sm" disabled={!newPostText.trim()} onClick={handlePublish}>
+                <Button size="sm" disabled={!newPostText.trim() || createPost.isPending} onClick={handlePublish}>
                   {t.feed.publish}
                 </Button>
               </div>
@@ -160,8 +143,13 @@ export default function FeedPage() {
 
         {/* Posts */}
         <div className="space-y-4">
+          {isLoading && (
+            <div className="py-16 text-center text-muted-foreground">
+              Завантаження...
+            </div>
+          )}
           <AnimatePresence mode="popLayout">
-            {filtered.map((post, i) => (
+            {posts.map((post, i) => (
               <motion.div
                 key={post.id}
                 layout
@@ -172,14 +160,14 @@ export default function FeedPage() {
               >
                 <PostCard
                   post={post}
-                  onLike={() => toggleLike(post.id)}
-                  onRepost={() => toggleRepost(post.id)}
-                  onBookmark={() => toggleBookmark(post.id)}
+                  onLike={() => likePost.mutate({ id: post.id, isLiked: !!post.is_liked })}
+                  onRepost={() => repostPost.mutate({ id: post.id, isReposted: !!post.is_reposted })}
+                  onBookmark={() => bookmarkPost.mutate({ id: post.id, isBookmarked: !!post.is_bookmarked })}
                 />
               </motion.div>
             ))}
           </AnimatePresence>
-          {filtered.length === 0 && (
+          {!isLoading && posts.length === 0 && (
             <div className="py-16 text-center text-muted-foreground">
               {t.feed.nothing_found}
             </div>
@@ -195,7 +183,7 @@ export default function FeedPage() {
           </DialogHeader>
           <div className="flex gap-3">
             <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">В</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{userInitials}</AvatarFallback>
             </Avatar>
             <Textarea
               placeholder={t.feed.compose_dialog_placeholder}
@@ -214,8 +202,8 @@ export default function FeedPage() {
                 <Smile className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
-            <Button disabled={!newPostText.trim()} onClick={handlePublish}>
-              <Send className="mr-1.5 h-4 w-4" /> Опублікувати
+            <Button disabled={!newPostText.trim() || createPost.isPending} onClick={handlePublish}>
+              <Send className="mr-1.5 h-4 w-4" /> {t.feed.publish}
             </Button>
           </div>
         </DialogContent>
@@ -231,32 +219,14 @@ function PostCard({
   onRepost,
   onBookmark,
 }: {
-  post: FeedPost;
+  post: ApiFeedPost;
   onLike: () => void;
   onRepost: () => void;
   onBookmark: () => void;
 }) {
   const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [localComments, setLocalComments] = useState<FeedComment[]>(post.comments);
 
-  const addComment = () => {
-    if (!commentText.trim()) return;
-    setLocalComments((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        author: { name: "Ви", handle: "@you", avatar: "" },
-        content: commentText,
-        timeAgo: "Щойно",
-        likes: 0,
-        liked: false,
-      },
-    ]);
-    setCommentText("");
-  };
-
-  const initials = post.author.name
+  const initials = (post.author?.display_name || "?")
     .split(" ")
     .map((w) => w[0])
     .join("")
@@ -273,11 +243,10 @@ function PostCard({
         </Avatar>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-semibold">{post.author.name}</span>
-            {post.author.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />}
-            <span className="text-xs text-muted-foreground">{post.author.handle}</span>
+            <span className="truncate text-sm font-semibold">{post.author?.display_name || "User"}</span>
+            <span className="text-xs text-muted-foreground">@{post.author?.handle || "user"}</span>
           </div>
-          <span className="text-xs text-muted-foreground">{post.timeAgo}</span>
+          <span className="text-xs text-muted-foreground">{timeAgo(post.created_at)}</span>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
           <MoreHorizontal className="h-4 w-4" />
@@ -315,29 +284,29 @@ function PostCard({
       <div className="flex items-center justify-between border-t border-border px-2 py-1.5">
         <ActionBtn
           icon={Heart}
-          count={post.likes}
-          active={post.liked}
+          count={post.like_count}
+          active={!!post.is_liked}
           activeClass="text-red-500"
           onClick={onLike}
         />
         <ActionBtn
           icon={MessageCircle}
-          count={localComments.length}
+          count={post.comment_count}
           active={showComments}
           activeClass="text-primary"
           onClick={() => setShowComments(!showComments)}
         />
         <ActionBtn
           icon={Repeat2}
-          count={post.reposts}
-          active={post.reposted}
+          count={post.repost_count}
+          active={!!post.is_reposted}
           activeClass="text-green-500"
           onClick={onRepost}
         />
         <ActionBtn
           icon={Bookmark}
-          count={post.bookmarks}
-          active={post.bookmarked}
+          count={0}
+          active={!!post.is_bookmarked}
           activeClass="text-primary"
           onClick={onBookmark}
         />
@@ -355,41 +324,59 @@ function PostCard({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden border-t border-border"
           >
-            <div className="space-y-3 p-4">
-              {localComments.map((c) => (
-                <div key={c.id} className="flex gap-2.5">
-                  <Avatar className="h-7 w-7 shrink-0">
-                    <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
-                      {c.author.name[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold">{c.author.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{c.timeAgo}</span>
-                    </div>
-                    <p className="text-xs leading-relaxed text-foreground/90">{c.content}</p>
-                  </div>
-                </div>
-              ))}
-              {/* Add comment */}
-              <div className="flex gap-2 pt-1">
-                <Input
-                  placeholder="Написати коментар..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addComment()}
-                  className="h-8 text-xs"
-                />
-                <Button size="sm" className="h-8 px-3" disabled={!commentText.trim()} onClick={addComment}>
-                  <Send className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
+            <CommentsSection postId={post.id} />
           </motion.div>
         )}
       </AnimatePresence>
     </article>
+  );
+}
+
+/* ─── Comments Section ─── */
+function CommentsSection({ postId }: { postId: string }) {
+  const { data: comments } = useComments(postId);
+  const createComment = useCreateComment();
+  const [commentText, setCommentText] = useState("");
+
+  const addComment = () => {
+    if (!commentText.trim()) return;
+    createComment.mutate({ postId, content: commentText }, {
+      onSuccess: () => setCommentText(""),
+    });
+  };
+
+  return (
+    <div className="space-y-3 p-4">
+      {(comments || []).map((c) => (
+        <div key={c.id} className="flex gap-2.5">
+          <Avatar className="h-7 w-7 shrink-0">
+            <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground">
+              {(c.author?.display_name || "?")[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold">{c.author?.display_name || "User"}</span>
+              <span className="text-[10px] text-muted-foreground">{timeAgo(c.created_at)}</span>
+            </div>
+            <p className="text-xs leading-relaxed text-foreground/90">{c.content}</p>
+          </div>
+        </div>
+      ))}
+      {/* Add comment */}
+      <div className="flex gap-2 pt-1">
+        <Input
+          placeholder="Написати коментар..."
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addComment()}
+          className="h-8 text-xs"
+        />
+        <Button size="sm" className="h-8 px-3" disabled={!commentText.trim() || createComment.isPending} onClick={addComment}>
+          <Send className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
   );
 }
 

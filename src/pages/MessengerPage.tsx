@@ -11,74 +11,70 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { sampleChats, currentUserId, type Chat, type ChatMessage } from "@/data/chatData";
+import { useConversations, useMessages, useSendMessage, useMarkRead, type Conversation, type Message } from "@/hooks/useMessenger";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n";
 
-type Tab = "all" | "private" | "groups" | "channels";
+type Tab = "all" | "private" | "group" | "channel";
 
 export default function MessengerPage() {
   const { t } = useLanguage();
-  const [chats, setChats] = useState<Chat[]>(sampleChats);
+  const { user } = useAuth();
+  const { data: conversations, isLoading } = useConversations();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [searchQ, setSearchQ] = useState("");
   const [msgText, setMsgText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sendMessage = useSendMessage();
+  const markRead = useMarkRead();
 
   const tabs: { value: Tab; label: string; icon: React.ElementType }[] = [
     { value: "all", label: t.messenger.all, icon: MessageCircle },
     { value: "private", label: t.messenger.private, icon: Lock },
-    { value: "groups", label: t.messenger.groups, icon: Users },
-    { value: "channels", label: t.messenger.channels, icon: Radio },
+    { value: "group", label: t.messenger.groups, icon: Users },
+    { value: "channel", label: t.messenger.channels, icon: Radio },
   ];
 
-  const activeChat = chats.find((c) => c.id === activeId) || null;
+  const activeConv = (conversations || []).find((c) => c.id === activeId) || null;
+  const { data: messages } = useMessages(activeId || "");
 
   const filtered = useMemo(() => {
-    let list = chats;
+    let list = conversations || [];
     if (tab !== "all") list = list.filter((c) => c.type === tab);
     if (searchQ) {
       const q = searchQ.toLowerCase();
-      list = list.filter((c) => c.name.toLowerCase().includes(q) || c.lastMessage.toLowerCase().includes(q));
+      list = list.filter((c) => (c.name || "").toLowerCase().includes(q) || (c.last_message || "").toLowerCase().includes(q));
     }
     return [...list].sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
       return 0;
     });
-  }, [chats, tab, searchQ]);
+  }, [conversations, tab, searchQ]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeChat?.messages.length]);
+  }, [messages?.length]);
 
-  const sendMessage = () => {
+  const handleSend = () => {
     if (!msgText.trim() || !activeId) return;
-    const newMsg: ChatMessage = {
-      id: Date.now().toString(),
-      senderId: currentUserId,
-      text: msgText,
-      time: new Date().toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
-      read: false,
-    };
-    setChats((prev) =>
-      prev.map((c) =>
-        c.id === activeId
-          ? { ...c, messages: [...c.messages, newMsg], lastMessage: msgText, lastTime: newMsg.time, unread: 0 }
-          : c
-      )
-    );
+    sendMessage.mutate({ conversationId: activeId, content: msgText });
     setMsgText("");
   };
 
   const openChat = (id: string) => {
     setActiveId(id);
-    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
+    markRead.mutate(id);
+  };
+
+  const getAvatar = (conv: Conversation) => {
+    return (conv.name || "?").split(" ").map(w => w[0]).join("").slice(0, 2);
   };
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
-      <aside className={`flex w-full flex-col border-r border-border bg-card sm:w-80 lg:w-96 ${activeChat ? "hidden sm:flex" : "flex"}`}>
+      <aside className={`flex w-full flex-col border-r border-border bg-card sm:w-80 lg:w-96 ${activeConv ? "hidden sm:flex" : "flex"}`}>
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h1 className="text-lg font-bold font-sans">{t.messenger.title}</h1>
           <div className="flex gap-1">
@@ -108,36 +104,37 @@ export default function MessengerPage() {
 
         <ScrollArea className="flex-1">
           <div className="space-y-0.5 px-2 py-1">
-            {filtered.map((chat) => (
-              <ChatListItem key={chat.id} chat={chat} active={chat.id === activeId} onClick={() => openChat(chat.id)} />
+            {isLoading && <p className="py-8 text-center text-sm text-muted-foreground">Завантаження...</p>}
+            {filtered.map((conv) => (
+              <ChatListItem key={conv.id} conv={conv} avatar={getAvatar(conv)} active={conv.id === activeId} onClick={() => openChat(conv.id)} />
             ))}
-            {filtered.length === 0 && (
+            {!isLoading && filtered.length === 0 && (
               <p className="py-8 text-center text-sm text-muted-foreground">{t.messenger.nothing_found}</p>
             )}
           </div>
         </ScrollArea>
       </aside>
 
-      <div className={`flex flex-1 flex-col ${!activeChat ? "hidden sm:flex" : "flex"}`}>
-        {activeChat ? (
+      <div className={`flex flex-1 flex-col ${!activeConv ? "hidden sm:flex" : "flex"}`}>
+        {activeConv ? (
           <>
             <div className="flex items-center gap-3 border-b border-border px-4 py-3">
               <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => setActiveId(null)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <Avatar className="h-9 w-9 shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{activeChat.avatar}</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{getAvatar(activeConv)}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-semibold">{activeChat.name}</span>
-                  {activeChat.type === "channel" && <Radio className="h-3.5 w-3.5 text-primary" />}
-                  {activeChat.type === "group" && <Users className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <span className="truncate text-sm font-semibold">{activeConv.name || "Chat"}</span>
+                  {activeConv.type === "channel" && <Radio className="h-3.5 w-3.5 text-primary" />}
+                  {activeConv.type === "group" && <Users className="h-3.5 w-3.5 text-muted-foreground" />}
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {activeChat.type === "private" && (activeChat.online ? t.messenger.online : t.messenger.was_recently)}
-                  {activeChat.type === "group" && `${activeChat.members} ${t.messenger.members}`}
-                  {activeChat.type === "channel" && `${activeChat.subscribers?.toLocaleString()} ${t.messenger.subscribers}`}
+                  {activeConv.type === "private" && t.messenger.online}
+                  {activeConv.type === "group" && `${activeConv.members?.length || 0} ${t.messenger.members}`}
+                  {activeConv.type === "channel" && t.messenger.channels}
                 </span>
               </div>
               <div className="flex gap-1">
@@ -150,14 +147,14 @@ export default function MessengerPage() {
 
             <ScrollArea className="flex-1 px-4 py-4">
               <div className="mx-auto max-w-2xl space-y-3">
-                {activeChat.messages.map((msg) => (
-                  <MessageBubble key={msg.id} msg={msg} chatType={activeChat.type} />
+                {(messages || []).map((msg) => (
+                  <MessageBubble key={msg.id} msg={msg} isMe={msg.sender_id === user?.id} chatType={activeConv.type} />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
 
-            {activeChat.type !== "channel" && (
+            {activeConv.type !== "channel" && (
               <div className="border-t border-border px-3 py-3">
                 <div className="mx-auto flex max-w-2xl items-end gap-2">
                   <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0"><Paperclip className="h-4 w-4" /></Button>
@@ -166,7 +163,7 @@ export default function MessengerPage() {
                       placeholder={t.messenger.write_message}
                       value={msgText}
                       onChange={(e) => setMsgText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                       className="pr-20"
                     />
                     <div className="absolute right-1 top-1/2 flex -translate-y-1/2 gap-0.5">
@@ -174,7 +171,7 @@ export default function MessengerPage() {
                       <Button variant="ghost" size="icon" className="h-7 w-7"><Mic className="h-4 w-4" /></Button>
                     </div>
                   </div>
-                  <Button size="icon" className="h-9 w-9 shrink-0" disabled={!msgText.trim()} onClick={sendMessage}>
+                  <Button size="icon" className="h-9 w-9 shrink-0" disabled={!msgText.trim()} onClick={handleSend}>
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -195,7 +192,8 @@ export default function MessengerPage() {
   );
 }
 
-function ChatListItem({ chat, active, onClick }: { chat: Chat; active: boolean; onClick: () => void }) {
+function ChatListItem({ conv, avatar, active, onClick }: { conv: Conversation; avatar: string; active: boolean; onClick: () => void }) {
+  const lastTime = conv.last_message_at ? new Date(conv.last_message_at).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }) : "";
   return (
     <button
       onClick={onClick}
@@ -203,25 +201,24 @@ function ChatListItem({ chat, active, onClick }: { chat: Chat; active: boolean; 
     >
       <div className="relative shrink-0">
         <Avatar className="h-11 w-11">
-          <AvatarFallback className={`text-xs font-semibold ${chat.type === "channel" ? "bg-primary/15 text-primary" : chat.type === "group" ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"}`}>
-            {chat.avatar}
+          <AvatarFallback className={`text-xs font-semibold ${conv.type === "channel" ? "bg-primary/15 text-primary" : conv.type === "group" ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"}`}>
+            {avatar}
           </AvatarFallback>
         </Avatar>
-        {chat.online && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-primary" />}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 truncate">
-            {chat.pinned && <Pin className="h-3 w-3 shrink-0 text-muted-foreground" />}
-            <span className="truncate text-sm font-medium">{chat.name}</span>
-            {chat.type === "channel" && <Radio className="h-3 w-3 shrink-0 text-primary" />}
+            {conv.is_pinned && <Pin className="h-3 w-3 shrink-0 text-muted-foreground" />}
+            <span className="truncate text-sm font-medium">{conv.name || "Chat"}</span>
+            {conv.type === "channel" && <Radio className="h-3 w-3 shrink-0 text-primary" />}
           </div>
-          <span className="shrink-0 text-[11px] text-muted-foreground">{chat.lastTime}</span>
+          <span className="shrink-0 text-[11px] text-muted-foreground">{lastTime}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-muted-foreground">{chat.lastMessage}</p>
-          {chat.unread > 0 && (
-            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">{chat.unread}</span>
+          <p className="truncate text-xs text-muted-foreground">{conv.last_message || ""}</p>
+          {conv.unread_count > 0 && (
+            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">{conv.unread_count}</span>
           )}
         </div>
       </div>
@@ -229,16 +226,16 @@ function ChatListItem({ chat, active, onClick }: { chat: Chat; active: boolean; 
   );
 }
 
-function MessageBubble({ msg, chatType }: { msg: ChatMessage; chatType: Chat["type"] }) {
-  const isMe = msg.senderId === currentUserId;
+function MessageBubble({ msg, isMe, chatType }: { msg: Message; isMe: boolean; chatType: string }) {
+  const time = new Date(msg.created_at).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
   return (
     <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 ${isMe ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-secondary text-secondary-foreground"}`}>
-        {!isMe && chatType !== "private" && <p className="mb-0.5 text-[11px] font-semibold text-primary">{msg.senderId}</p>}
-        <p className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</p>
+        {!isMe && chatType !== "private" && msg.sender && <p className="mb-0.5 text-[11px] font-semibold text-primary">{msg.sender.display_name}</p>}
+        <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
         <div className={`mt-1 flex items-center justify-end gap-1 ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-          <span className="text-[10px]">{msg.time}</span>
-          {isMe && (msg.read ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />)}
+          <span className="text-[10px]">{time}</span>
+          {isMe && (msg.is_read ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />)}
         </div>
       </div>
     </div>

@@ -12,6 +12,9 @@ const es: Translations = {
     panel: "Panel",
     login: "Iniciar sesión",
     search: "Buscar",
+    profile: "Perfil",
+    logout: "Cerrar sesión",
+    signup: "Registrarse",
   },
   footer: {
     subscribe_title: "Mantente al día",
@@ -450,6 +453,18 @@ const es: Translations = {
     benefit_1: "Vende arte sin fronteras",
     benefit_2: "Traducción IA a 5 idiomas",
     benefit_3: "Vista previa AR en tu interior",
+    google_login: "Continuar con Google",
+  },
+  auth_prompt: {
+    title: "Inicio de sesión requerido",
+    desc: "Crea una cuenta o inicia sesión para obtener acceso completo a la plataforma. ¡Es gratis!",
+    buy_sell: "Compra y vende arte",
+    messaging: "Chatea con artistas",
+    dashboard: "Gestiona tus obras",
+    community: "Únete a la comunidad",
+    signup_cta: "Crear cuenta",
+    login_cta: "¿Ya tienes cuenta? Inicia sesión",
+    free_note: "El registro es gratuito. Sin costes ocultos.",
   },
   payment: {
     success_title: "¡Pago exitoso!",

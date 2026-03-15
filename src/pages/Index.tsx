@@ -1,9 +1,13 @@
+import { useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Users, Megaphone, Calendar, ShoppingBag, MessageCircle, Video, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n";
-import heroArt from "@/assets/hero-art.jpg";
+import { useHeroScroll } from "@/components/hero/useHeroScroll";
+import { useMousePosition } from "@/components/hero/useMousePosition";
+
+const HeroScene = lazy(() => import("@/components/hero/HeroScene"));
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -15,6 +19,14 @@ const fadeUp = {
 
 export default function Index() {
   const { t } = useLanguage();
+  const heroRef = useRef<HTMLElement>(null);
+
+  const reducedMotion = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ).current;
+
+  const { scrollProgress, textOpacity, textY } = useHeroScroll(heroRef);
+  const { mouse, update: mouseUpdate } = useMousePosition();
 
   const features = [
     { icon: Megaphone, title: t.home.feat_board, desc: t.home.feat_board_desc, link: "/board" },
@@ -35,43 +47,52 @@ export default function Index() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden hero-gradient">
+      {/* Hero — full-width WebGL gradient background */}
+      <section ref={heroRef} className="relative overflow-hidden min-h-[80vh]">
+        {/* WebGL background */}
+        <div className="absolute inset-0">
+          {reducedMotion ? (
+            <div className="w-full h-full hero-gradient" />
+          ) : (
+            <Suspense fallback={<div className="w-full h-full hero-gradient" />}>
+              <HeroScene
+                scrollProgress={scrollProgress}
+                mouse={mouse}
+                mouseUpdate={mouseUpdate}
+              />
+            </Suspense>
+          )}
+        </div>
+
+        {/* Text content overlay */}
         <div className="container relative z-10 py-20 lg:py-28">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <motion.div initial="hidden" animate="visible" className="max-w-xl">
-              <motion.p variants={fadeUp} custom={0} className="mb-4 text-sm font-semibold uppercase tracking-widest text-primary">
-                {t.home.hero_badge}
-              </motion.p>
-              <motion.h1 variants={fadeUp} custom={1} className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-                {t.home.hero_title_1}<span className="text-gradient">{t.home.hero_title_highlight}</span>{t.home.hero_title_2}
-              </motion.h1>
-              <motion.p variants={fadeUp} custom={2} className="mb-8 text-lg leading-relaxed text-muted-foreground">
-                {t.home.hero_desc}
-              </motion.p>
-              <motion.div variants={fadeUp} custom={3} className="flex flex-wrap gap-3">
-                <Button size="lg" asChild>
-                  <Link to="/board">
-                    {t.home.hero_cta_board}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link to="/artists">{t.home.hero_cta_artists}</Link>
-                </Button>
-              </motion.div>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            className="max-w-xl"
+            style={{ opacity: textOpacity, y: textY }}
+          >
+            <motion.p variants={fadeUp} custom={0} className="mb-4 text-sm font-semibold uppercase tracking-widest text-primary">
+              {t.home.hero_badge}
+            </motion.p>
+            <motion.h1 variants={fadeUp} custom={1} className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+              {t.home.hero_title_1}<span className="text-gradient">{t.home.hero_title_highlight}</span>{t.home.hero_title_2}
+            </motion.h1>
+            <motion.p variants={fadeUp} custom={2} className="mb-8 text-lg leading-relaxed text-muted-foreground">
+              {t.home.hero_desc}
+            </motion.p>
+            <motion.div variants={fadeUp} custom={3} className="flex flex-wrap gap-3">
+              <Button size="lg" asChild>
+                <Link to="/board">
+                  {t.home.hero_cta_board}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/artists">{t.home.hero_cta_artists}</Link>
+              </Button>
             </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.7 }}
-              className="relative"
-            >
-              <div className="overflow-hidden rounded-2xl card-shadow">
-                <img src={heroArt} alt={t.home.hero_img_alt} className="w-full object-cover" />
-              </div>
-            </motion.div>
-          </div>
+          </motion.div>
         </div>
       </section>
 

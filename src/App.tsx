@@ -7,6 +7,7 @@ import { CartProvider } from "./contexts/CartContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./i18n";
 import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import CookieBanner from "./components/CookieBanner";
 import Index from "./pages/Index";
 import BoardPage from "./pages/BoardPage";
@@ -48,21 +49,12 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route element={<Layout />}>
+              {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/board" element={<BoardPage />} />
-              <Route path="/artists" element={<ArtistsPage />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/feed" element={<FeedPage />} />
               <Route path="/market" element={<MarketPage />} />
               <Route path="/market/:id" element={<ProductPage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/messenger" element={<MessengerPage />} />
-              <Route path="/profile" element={<UserProfilePage />} />
-              <Route path="/profile/:handle" element={<UserProfilePage />} />
-              <Route path="/dashboard" element={<ArtistDashboardPage />} />
-              <Route path="/blog" element={<BlogPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
@@ -71,9 +63,21 @@ const App = () => (
               <Route path="/help" element={<HelpPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignUpPage />} />
-              <Route path="/room-visualizer" element={<RoomVisualizerPage />} />
-              <Route path="/payment/success" element={<PaymentSuccessPage />} />
-              <Route path="/payment/error" element={<PaymentErrorPage />} />
+
+              {/* Protected routes — require authentication */}
+              <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+              <Route path="/artists" element={<ProtectedRoute><ArtistsPage /></ProtectedRoute>} />
+              <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+              <Route path="/messenger" element={<ProtectedRoute><MessengerPage /></ProtectedRoute>} />
+              <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+              <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+              <Route path="/profile/:handle" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><ArtistDashboardPage /></ProtectedRoute>} />
+              <Route path="/blog" element={<ProtectedRoute><BlogPage /></ProtectedRoute>} />
+              <Route path="/room-visualizer" element={<ProtectedRoute><RoomVisualizerPage /></ProtectedRoute>} />
+              <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
+              <Route path="/payment/error" element={<ProtectedRoute><PaymentErrorPage /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

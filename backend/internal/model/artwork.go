@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,6 +35,8 @@ type Artwork struct {
 	Country          *string      `db:"country" json:"country,omitempty"`
 	IsPromoted       bool         `db:"is_promoted" json:"is_promoted"`
 	PromotedUntil    *time.Time   `db:"promoted_until" json:"promoted_until,omitempty"`
+	Translations     json.RawMessage `db:"translations" json:"translations,omitempty"`
+	Embedding        *string      `db:"embedding" json:"-"`
 	IsFeatured       bool         `db:"is_featured" json:"is_featured"`
 	CreatedAt        time.Time    `db:"created_at" json:"created_at"`
 	UpdatedAt        time.Time    `db:"updated_at" json:"updated_at"`

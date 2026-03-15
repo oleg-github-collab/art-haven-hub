@@ -4,90 +4,62 @@ import ProfileCover from "@/components/profile/ProfileCover";
 import ProfileInfo from "@/components/profile/ProfileInfo";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import EditProfileDialog from "@/components/profile/EditProfileDialog";
-
-interface ProfileData {
-  name: string;
-  handle: string;
-  bio: string;
-  location: string;
-  website: string;
-  joined: string;
-  verified: boolean;
-  followers: number;
-  following: number;
-  posts: number;
-  isOwn: boolean;
-  isFollowing: boolean;
-  tags: string[];
-  coverColor: string;
-}
-
-const profiles: Record<string, ProfileData> = {
-  me: {
-    name: "Your Profile",
-    handle: "@you",
-    bio: "Artist, curator, dreamer. Creating art that connects people 🎨",
-    location: "Berlin, Germany",
-    website: "myart.studio",
-    joined: "March 2024",
-    verified: false,
-    followers: 248,
-    following: 186,
-    posts: 42,
-    isOwn: true,
-    isFollowing: false,
-    tags: ["painting", "ceramics", "installations"],
-    coverColor: "from-primary/20 via-accent to-secondary",
-  },
-  "olena-art": {
-    name: "Олена Мирна",
-    handle: "@olena.art",
-    bio: "Watercolorist 🎨 Painting Carpathians, sea & people. Exhibitions: Berlin, Vienna, Warsaw.\nOriginals & prints in market ↓",
-    location: "Vienna, Austria",
-    website: "olena-art.com",
-    joined: "January 2024",
-    verified: true,
-    followers: 4820,
-    following: 312,
-    posts: 156,
-    isOwn: false,
-    isFollowing: false,
-    tags: ["watercolor", "landscape", "portrait"],
-    coverColor: "from-blue-500/20 via-primary/10 to-accent/30",
-  },
-};
-
-const sampleWorks = [
-  { id: 1, title: "Winter Morning", likes: 142, comments: 23 },
-  { id: 2, title: "Carpathian Fog", likes: 89, comments: 12 },
-  { id: 3, title: "Spring Vienna", likes: 234, comments: 45 },
-  { id: 4, title: "Night Sea", likes: 178, comments: 31 },
-  { id: 5, title: "Old Town", likes: 67, comments: 8 },
-  { id: 6, title: "Portrait with Flowers", likes: 312, comments: 56 },
-];
-
-const sampleReviews = [
-  { author: "Artem K.", text: "Fantastic quality! Received the painting quickly, perfect packaging.", rating: 5 },
-  { author: "Maria D.", text: "Very pleasant communication, highly recommend as a seller.", rating: 5 },
-];
+import { useProfile, useUpdateProfile, useFollow } from "@/hooks/useProfile";
+import { useAuth } from "@/contexts/AuthContext";
+import { useArtworks } from "@/hooks/useArtworks";
 
 export default function ProfilePage_() {
   const { handle } = useParams();
-  const profileKey = handle || "me";
-  const defaultProfile = profiles[profileKey] || profiles["me"];
+  const { user: currentUser } = useAuth();
+  const profileHandle = handle || currentUser?.handle || "";
+  const isOwn = !handle || handle === currentUser?.handle;
 
-  const [profileData, setProfileData] = useState(defaultProfile);
-  const [following, setFollowing] = useState(defaultProfile.isFollowing);
-  const [followerCount, setFollowerCount] = useState(defaultProfile.followers);
+  const { data: profileUser, isLoading } = useProfile(profileHandle);
+  const { data: artworkData } = useArtworks({ artist_id: profileUser?.id, limit: 20 });
+  const updateProfile = useUpdateProfile();
+  const follow = useFollow();
   const [editOpen, setEditOpen] = useState(false);
+  const [following, setFollowing] = useState(false);
+
+  if (isLoading || !profileUser) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Завантаження...</p>
+      </div>
+    );
+  }
+
+  const profileData = {
+    name: profileUser.display_name,
+    handle: `@${profileUser.handle}`,
+    bio: profileUser.bio || "",
+    location: [profileUser.city, profileUser.country].filter(Boolean).join(", "),
+    website: "",
+    joined: new Date(profileUser.id).toLocaleDateString("uk-UA"), // approximate
+    verified: (profileUser.roles || []).includes("verified"),
+    isOwn,
+    tags: [] as string[],
+    coverColor: "from-primary/20 via-accent to-secondary",
+  };
+
+  const followerCount = profileUser.follower_count || 0;
+  const followingCount = profileUser.following_count || 0;
+  const postsCount = profileUser.artwork_count || 0;
+
+  const sampleWorks = (artworkData?.items || []).map(a => ({
+    id: a.id as any,
+    title: a.title,
+    likes: a.like_count,
+    comments: a.review_count || 0,
+  }));
 
   const toggleFollow = () => {
-    setFollowing((f) => !f);
-    setFollowerCount((c) => (following ? c - 1 : c + 1));
+    follow.mutate({ userId: profileUser.id, isFollowing: following });
+    setFollowing(f => !f);
   };
 
   const handleSaveProfile = (data: { name: string; bio: string; location: string; website: string; tags: string[] }) => {
-    setProfileData((prev) => ({ ...prev, ...data }));
+    updateProfile.mutate({ display_name: data.name, bio: data.bio } as any);
   };
 
   return (
@@ -97,12 +69,12 @@ export default function ProfilePage_() {
         profile={profileData}
         following={following}
         followerCount={followerCount}
-        followingCount={profileData.following}
-        postsCount={profileData.posts}
+        followingCount={followingCount}
+        postsCount={postsCount}
         onToggleFollow={toggleFollow}
         onEditProfile={() => setEditOpen(true)}
       />
-      <ProfileTabs works={sampleWorks} reviews={sampleReviews} isOwn={profileData.isOwn} />
+      <ProfileTabs works={sampleWorks} reviews={[]} isOwn={profileData.isOwn} />
 
       {profileData.isOwn && (
         <EditProfileDialog

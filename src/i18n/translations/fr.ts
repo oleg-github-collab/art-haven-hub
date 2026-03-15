@@ -12,6 +12,9 @@ const fr: Translations = {
     panel: "Tableau de bord",
     login: "Se connecter",
     search: "Rechercher",
+    profile: "Profil",
+    logout: "Se déconnecter",
+    signup: "S'inscrire",
   },
   footer: {
     subscribe_title: "Restez informé",
@@ -450,6 +453,18 @@ const fr: Translations = {
     benefit_1: "Vendez de l'art sans frontières",
     benefit_2: "Traduction IA en 5 langues",
     benefit_3: "Aperçu AR dans votre intérieur",
+    google_login: "Continuer avec Google",
+  },
+  auth_prompt: {
+    title: "Connexion requise",
+    desc: "Créez un compte ou connectez-vous pour accéder à toutes les fonctionnalités. C'est gratuit !",
+    buy_sell: "Achetez et vendez de l'art",
+    messaging: "Discutez avec des artistes",
+    dashboard: "Gérez vos œuvres",
+    community: "Rejoignez la communauté",
+    signup_cta: "Créer un compte",
+    login_cta: "Déjà un compte ? Se connecter",
+    free_note: "L'inscription est gratuite. Aucun frais caché.",
   },
   payment: {
     success_title: "Paiement réussi !",

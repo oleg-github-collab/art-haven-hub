@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,17 +8,52 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/i18n";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import heroArt from "@/assets/hero-art.jpg";
 
 export default function LoginPage() {
   const { t } = useLanguage();
+  const { login, googleLogin } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo") || "/";
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGoogleLogin = () => {
+    const google = (window as any).google;
+    if (!google?.accounts?.id) {
+      toast.error("Google Sign-In is not loaded yet");
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      callback: async (response: any) => {
+        try {
+          await googleLogin(response.credential);
+          navigate(returnTo);
+        } catch (err: any) {
+          toast.error(err.message || "Google login failed");
+        }
+      },
+    });
+    google.accounts.id.prompt();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI only — no backend
+    setLoading(true);
+    try {
+      await login(email, password);
+      navigate(returnTo);
+    } catch (err: any) {
+      toast.error(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,15 +100,11 @@ export default function LoginPage() {
           <h1 className="mb-2 text-3xl font-bold">{t.auth.login_title}</h1>
           <p className="mb-8 text-muted-foreground">{t.auth.login_desc}</p>
 
-          {/* Social buttons */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <Button variant="outline" className="h-11 gap-2 font-medium">
+          {/* Google Sign-In */}
+          <div className="mb-6">
+            <Button variant="outline" className="w-full h-11 gap-2 font-medium" onClick={handleGoogleLogin}>
               <svg className="h-4.5 w-4.5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              Google
-            </Button>
-            <Button variant="outline" className="h-11 gap-2 font-medium">
-              <svg className="h-4.5 w-4.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.32 2.32-2.14 4.45-3.74 4.25z"/></svg>
-              Apple
+              {t.auth.google_login || "Continue with Google"}
             </Button>
           </div>
 
@@ -133,9 +164,9 @@ export default function LoginPage() {
               <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">{t.auth.remember_me}</Label>
             </div>
 
-            <Button type="submit" className="w-full h-11 text-sm font-semibold gap-2">
-              {t.auth.login_btn}
-              <ArrowRight className="h-4 w-4" />
+            <Button type="submit" className="w-full h-11 text-sm font-semibold gap-2" disabled={loading}>
+              {loading ? "..." : t.auth.login_btn}
+              {!loading && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
 

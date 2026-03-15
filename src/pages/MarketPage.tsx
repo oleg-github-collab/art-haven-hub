@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { useCart } from "@/contexts/CartContext";
-import { items as allItems, categories, sortOptions, conditions, countries, type MarketItem } from "@/data/marketItems";
+import { useArtworks, useCategories, formatPrice, type Artwork } from "@/hooks/useArtworks";
+import { conditions, countries, sortOptions, type MarketItem } from "@/data/marketItems";
 import { toast } from "sonner";
 
 const cardVariants = {
@@ -21,25 +22,76 @@ const cardVariants = {
   exit: { opacity: 0, y: -10, scale: 0.97, transition: { duration: 0.2 } },
 };
 
+function artworkToMarketItem(a: Artwork): MarketItem {
+  return {
+    id: a.id as any,
+    title: a.title,
+    category: a.category_id,
+    subcategory: a.subcategory || a.category_id,
+    price: formatPrice(a.price_cents, a.currency),
+    priceNum: a.price_cents / 100,
+    seller: a.artist?.display_name || "Artist",
+    sellerRating: a.avg_rating || 0,
+    sellerReviews: a.review_count || 0,
+    city: a.city || "",
+    country: a.country || "",
+    emoji: a.emoji || "🎨",
+    description: a.description || "",
+    fullDescription: a.full_description,
+    tags: a.tags || [],
+    condition: a.condition,
+    featured: a.is_featured || a.is_promoted,
+    date: new Date(a.created_at).toLocaleDateString("uk-UA"),
+    views: a.view_count,
+    likes: a.like_count,
+    biddable: a.is_biddable,
+    currentBid: a.current_bid_cents / 100,
+    bidCount: a.bid_count,
+    shippingOptions: a.shipping_options,
+    returnPolicy: a.return_policy,
+    artworkWidth: a.width_cm,
+    artworkHeight: a.height_cm,
+  };
+}
+
 export default function MarketPage() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [likedItems, setLikedItems] = useState<Set<number>>(new Set());
+  const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 1500]);
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const { addItem } = useCart();
 
+  const { data: catData } = useCategories();
+  const categories = useMemo(() => {
+    const cats = catData || [];
+    return [{ id: "all", label: "Усі", sort: 0 }, ...cats];
+  }, [catData]);
+
+  const { data: artworkData, isLoading } = useArtworks({
+    category: activeCategory !== "all" ? activeCategory : undefined,
+    search: search || undefined,
+    sort: sortBy === "price-asc" ? "price_asc" : sortBy === "price-desc" ? "price_desc" : sortBy === "popular" ? "popular" : "newest",
+    min_price: priceRange[0] > 0 ? priceRange[0] * 100 : undefined,
+    max_price: priceRange[1] < 1500 ? priceRange[1] * 100 : undefined,
+    condition: selectedCondition || undefined,
+    country: selectedCountry || undefined,
+  });
+
+  const allItems = useMemo(() => (artworkData?.items || []).map(artworkToMarketItem), [artworkData]);
+
   const toggleLike = useCallback((id: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const sid = String(id);
     setLikedItems(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      next.has(sid) ? next.delete(sid) : next.add(sid);
       return next;
     });
   }, []);
@@ -49,31 +101,9 @@ export default function MarketPage() {
     e.stopPropagation();
     addItem({ id: item.id, title: item.title, price: item.price, priceNum: item.priceNum, seller: item.seller, emoji: item.emoji });
     toast.success(t.market.added_to_cart);
-  }, [addItem]);
+  }, [addItem, t]);
 
-  const filtered = useMemo(() => {
-    let result = allItems;
-    if (activeCategory !== "all") result = result.filter(i => i.category === activeCategory);
-    if (selectedCondition) result = result.filter(i => i.condition === selectedCondition);
-    if (selectedCountry) result = result.filter(i => i.country === selectedCountry);
-    result = result.filter(i => i.priceNum >= priceRange[0] && i.priceNum <= priceRange[1]);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(i =>
-        i.title.toLowerCase().includes(q) ||
-        i.seller.toLowerCase().includes(q) ||
-        i.tags.some(t => t.toLowerCase().includes(q)) ||
-        i.city.toLowerCase().includes(q)
-      );
-    }
-    switch (sortBy) {
-      case "price-asc": return [...result].sort((a, b) => a.priceNum - b.priceNum);
-      case "price-desc": return [...result].sort((a, b) => b.priceNum - a.priceNum);
-      case "popular": return [...result].sort((a, b) => b.views - a.views);
-      case "rating": return [...result].sort((a, b) => b.sellerRating - a.sellerRating);
-      default: return result;
-    }
-  }, [search, activeCategory, sortBy, priceRange, selectedCondition, selectedCountry]);
+  const filtered = allItems;
 
   const activeFiltersCount = [selectedCondition, selectedCountry, priceRange[0] > 0 || priceRange[1] < 1500 ? "price" : null].filter(Boolean).length;
 
@@ -182,9 +212,6 @@ export default function MarketPage() {
                         }`}
                       >
                         {cat.label}
-                        <span className={`text-xs ${activeCategory === cat.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                          {cat.count}
-                        </span>
                       </button>
                     ))}
                   </div>
@@ -256,7 +283,7 @@ export default function MarketPage() {
         {/* Results count */}
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "результат" : "результатів"}
+            {isLoading ? "Завантаження..." : `${artworkData?.total || 0} результатів`}
             {activeCategory !== "all" && ` у категорії «${categories.find(c => c.id === activeCategory)?.label}»`}
           </p>
         </div>
@@ -276,8 +303,8 @@ export default function MarketPage() {
           >
             {filtered.map((item, i) => (
               viewMode === "grid"
-                ? <GridCard key={item.id} item={item} index={i} liked={likedItems.has(item.id)} onLike={toggleLike} onQuickAdd={handleQuickAdd} />
-                : <ListCard key={item.id} item={item} index={i} liked={likedItems.has(item.id)} onLike={toggleLike} onQuickAdd={handleQuickAdd} />
+                ? <GridCard key={item.id} item={item} index={i} liked={likedItems.has(String(item.id))} onLike={toggleLike} onQuickAdd={handleQuickAdd} />
+                : <ListCard key={item.id} item={item} index={i} liked={likedItems.has(String(item.id))} onLike={toggleLike} onQuickAdd={handleQuickAdd} />
             ))}
           </motion.div>
         </AnimatePresence>

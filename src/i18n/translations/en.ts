@@ -12,6 +12,9 @@ const en: Translations = {
     panel: "Dashboard",
     login: "Sign In",
     search: "Search",
+    profile: "Profile",
+    logout: "Sign Out",
+    signup: "Sign Up",
   },
   footer: {
     subscribe_title: "Stay updated",
@@ -450,6 +453,18 @@ const en: Translations = {
     benefit_1: "Sell art without borders",
     benefit_2: "AI translation to 5 languages",
     benefit_3: "AR art preview in your interior",
+    google_login: "Continue with Google",
+  },
+  auth_prompt: {
+    title: "Sign in required",
+    desc: "Create an account or sign in to get full access to the platform. It's free!",
+    buy_sell: "Buy and sell artwork",
+    messaging: "Chat with artists",
+    dashboard: "Manage your works",
+    community: "Join the community",
+    signup_cta: "Create account",
+    login_cta: "Already have an account? Sign in",
+    free_note: "Registration is free. No hidden fees.",
   },
   payment: {
     success_title: "Payment successful!",

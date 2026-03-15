@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
-import { getItemById, items } from "@/data/marketItems";
+import { useArtwork, useSimilarArtworks, formatPrice } from "@/hooks/useArtworks";
 import { useLanguage } from "@/i18n";
 import { toast } from "sonner";
 import ARPreview from "@/components/ARPreview";
@@ -17,11 +17,43 @@ export default function ProductPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { t } = useLanguage();
-  const item = getItemById(Number(id));
+  const { data: artwork, isLoading } = useArtwork(id || "");
+  const { data: similarArtworks } = useSimilarArtworks(id || "");
   const [liked, setLiked] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [arOpen, setArOpen] = useState(false);
+
+  const item = artwork ? {
+    id: artwork.id,
+    title: artwork.title,
+    category: artwork.category_id,
+    subcategory: artwork.subcategory || artwork.category_id,
+    price: formatPrice(artwork.price_cents, artwork.currency),
+    priceNum: artwork.price_cents / 100,
+    seller: artwork.artist?.display_name || "Artist",
+    sellerRating: artwork.avg_rating || 0,
+    sellerReviews: artwork.review_count || 0,
+    city: artwork.city || "",
+    country: artwork.country || "",
+    emoji: artwork.emoji || "🎨",
+    description: artwork.description || "",
+    fullDescription: artwork.full_description,
+    tags: artwork.tags || [],
+    condition: artwork.condition,
+    featured: artwork.is_featured || artwork.is_promoted,
+    date: new Date(artwork.created_at).toLocaleDateString("uk-UA"),
+    views: artwork.view_count,
+    likes: artwork.like_count,
+    biddable: artwork.is_biddable,
+    currentBid: artwork.current_bid_cents / 100,
+    bidCount: artwork.bid_count,
+    shippingOptions: artwork.shipping_options,
+    returnPolicy: artwork.return_policy,
+    artworkWidth: artwork.width_cm,
+    artworkHeight: artwork.height_cm,
+    reviews: [] as { author: string; rating: number; text: string; date: string }[],
+  } : null;
 
   const isArtwork = ["painting", "photo", "ceramics"].includes(item?.category ?? "");
 
@@ -53,7 +85,12 @@ export default function ProductPage() {
     setBidAmount("");
   };
 
-  const relatedItems = items.filter(i => i.category === item.category && i.id !== item.id).slice(0, 4);
+  const relatedItems = (similarArtworks || []).slice(0, 4).map(a => ({
+    id: a.id,
+    title: a.title,
+    emoji: a.emoji || "🎨",
+    price: formatPrice(a.price_cents, a.currency),
+  }));
 
   return (
     <div className="py-6 lg:py-10">

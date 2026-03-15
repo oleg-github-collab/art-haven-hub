@@ -159,7 +159,7 @@ func (h *ArtworkHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusOK, result)
+	response.OK(w, result)
 }
 
 func (h *ArtworkHandler) GetCategories(w http.ResponseWriter, r *http.Request) {

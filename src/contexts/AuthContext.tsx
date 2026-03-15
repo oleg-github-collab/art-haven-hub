@@ -25,6 +25,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterInput) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -83,9 +84,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: data.user, isLoading: false, isAuthenticated: true });
   };
 
+  const googleLogin = async (idToken: string) => {
+    const data = await apiPost<{ access_token: string; refresh_token: string; user: User }>(
+      "/api/v1/auth/google",
+      { id_token: idToken },
+      { noAuth: true }
+    );
+    setTokens(data.access_token, data.refresh_token);
+    setState({ user: data.user, isLoading: false, isAuthenticated: true });
+  };
+
   const logout = async () => {
+    const refreshToken = localStorage.getItem("refresh_token");
     try {
-      await apiPost("/api/v1/auth/logout");
+      if (refreshToken) {
+        await apiPost("/api/v1/auth/logout", { refresh_token: refreshToken });
+      }
     } catch {
       // ignore
     }
@@ -94,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, refreshUser: fetchUser }}>
+    <AuthContext.Provider value={{ ...state, login, register, googleLogin, logout, refreshUser: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

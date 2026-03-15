@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 let accessToken: string | null = localStorage.getItem("access_token");
 
@@ -34,8 +34,9 @@ async function refreshAccessToken(): Promise<boolean> {
       return false;
     }
 
-    const data = await res.json();
-    setTokens(data.access_token, data.refresh_token);
+    const json = await res.json();
+    const payload = json?.data ?? json;
+    setTokens(payload.access_token, payload.refresh_token);
     return true;
   } catch {
     clearTokens();
@@ -96,13 +97,14 @@ export async function api<T = unknown>(
 
   if (res.status === 204) return undefined as T;
 
-  const data = await res.json().catch(() => null);
+  const json = await res.json().catch(() => null);
 
   if (!res.ok) {
-    throw new ApiError(res.status, data?.error || res.statusText);
+    throw new ApiError(res.status, json?.message || json?.error || res.statusText);
   }
 
-  return data as T;
+  // Unwrap { data: ... } envelope from backend
+  return (json && typeof json === "object" && "data" in json ? json.data : json) as T;
 }
 
 // Convenience methods

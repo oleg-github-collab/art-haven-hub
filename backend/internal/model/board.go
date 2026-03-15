@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,7 @@ type Announcement struct {
 	Tags        StringArray `db:"tags" json:"tags"`
 	IsActive    bool        `db:"is_active" json:"is_active"`
 	ExpiresAt   *time.Time  `db:"expires_at" json:"expires_at,omitempty"`
+	Embedding   *string     `db:"embedding" json:"-"`
 	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time   `db:"updated_at" json:"updated_at"`
 
@@ -65,9 +67,10 @@ type BlogPost struct {
 	Tags        StringArray `db:"tags" json:"tags"`
 	IsPublished bool        `db:"is_published" json:"is_published"`
 	PublishedAt *time.Time  `db:"published_at" json:"published_at,omitempty"`
-	ViewCount   int         `db:"view_count" json:"view_count"`
-	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time   `db:"updated_at" json:"updated_at"`
+	ViewCount    int              `db:"view_count" json:"view_count"`
+	Translations json.RawMessage  `db:"translations" json:"translations,omitempty"`
+	CreatedAt    time.Time        `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time        `db:"updated_at" json:"updated_at"`
 
 	Author *User `db:"-" json:"author,omitempty"`
 }

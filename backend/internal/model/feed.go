@@ -15,6 +15,7 @@ type FeedPost struct {
 	LikeCount    int         `db:"like_count" json:"like_count"`
 	CommentCount int         `db:"comment_count" json:"comment_count"`
 	RepostCount  int         `db:"repost_count" json:"repost_count"`
+	Embedding    *string     `db:"embedding" json:"-"`
 	CreatedAt    time.Time   `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time   `db:"updated_at" json:"updated_at"`
 

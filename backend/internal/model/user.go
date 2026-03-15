@@ -10,7 +10,7 @@ type User struct {
 	ID            uuid.UUID  `db:"id" json:"id"`
 	Email         string     `db:"email" json:"email"`
 	PasswordHash  *string    `db:"password_hash" json:"-"`
-	Name          string     `db:"name" json:"name"`
+	Name          string     `db:"name" json:"display_name"`
 	Handle        string     `db:"handle" json:"handle"`
 	AvatarURL     *string    `db:"avatar_url" json:"avatar_url,omitempty"`
 	CoverColor    string     `db:"cover_color" json:"cover_color"`
@@ -19,7 +19,8 @@ type User struct {
 	Website       *string    `db:"website" json:"website,omitempty"`
 	Tags          StringArray `db:"tags" json:"tags"`
 	IsVerified    bool       `db:"is_verified" json:"is_verified"`
-	PreferredLang string     `db:"preferred_lang" json:"preferred_lang"`
+	PreferredLang  string    `db:"preferred_lang" json:"preferred_lang"`
+	TasteEmbedding *string  `db:"taste_embedding" json:"-"`
 	CreatedAt     time.Time  `db:"created_at" json:"created_at"`
 	UpdatedAt     time.Time  `db:"updated_at" json:"updated_at"`
 

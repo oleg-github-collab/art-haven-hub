@@ -38,7 +38,7 @@ CREATE TABLE event_attendees (
 
 CREATE INDEX idx_events_organizer ON events(organizer_id);
 CREATE INDEX idx_events_starts ON events(starts_at);
-CREATE INDEX idx_events_upcoming ON events(starts_at) WHERE starts_at > NOW();
+CREATE INDEX idx_events_starts_desc ON events(starts_at DESC);
 CREATE INDEX idx_events_city ON events(city);
 CREATE INDEX idx_events_type ON events(event_type);
 CREATE INDEX idx_events_featured ON events(is_featured) WHERE is_featured = TRUE;

@@ -1,0 +1,60 @@
+services:
+  api:
+    build: .
+    ports:
+      - "80:8080"
+    environment:
+      - PORT=8080
+      - APP_ENV=production
+      - DATABASE_URL=postgres://art_haven:${DB_PASS}@postgres:5432/art_haven?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=*
+      - UPLOAD_DIR=/data/uploads
+      - UPLOAD_BASE_URL=http://${SERVER_IP}/files
+      - UPLOAD_MAX_SIZE_MB=10
+      - MIGRATIONS_DIR=/migrations
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_SUCCESS_URL=http://${SERVER_IP}/payment/success
+      - STRIPE_CANCEL_URL=http://${SERVER_IP}/payment/error
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: art_haven
+      POSTGRES_USER: art_haven
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U art_haven"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:

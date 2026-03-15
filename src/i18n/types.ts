@@ -12,6 +12,9 @@ export interface Translations {
     panel: string;
     login: string;
     search: string;
+    profile: string;
+    logout: string;
+    signup: string;
   };
   footer: {
     subscribe_title: string;
@@ -450,6 +453,18 @@ export interface Translations {
     benefit_1: string;
     benefit_2: string;
     benefit_3: string;
+    google_login: string;
+  };
+  auth_prompt: {
+    title: string;
+    desc: string;
+    buy_sell: string;
+    messaging: string;
+    dashboard: string;
+    community: string;
+    signup_cta: string;
+    login_cta: string;
+    free_note: string;
   };
   payment: {
     success_title: string;

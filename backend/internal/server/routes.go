@@ -2,6 +2,9 @@ package server
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -56,7 +59,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 	wsHub := ws.NewHub(rdb)
 
 	// Services
-	authService := service.NewAuthService(userRepo, jwtManager)
+	authService := service.NewAuthService(userRepo, jwtManager, cfg.GoogleClientID)
 	userService := service.NewUserService(userRepo, cfg.UploadDir, cfg.UploadBaseURL, cfg.UploadMaxSize)
 	artworkService := service.NewArtworkService(artworkRepo)
 	cartService := service.NewCartService(cartRepo, artworkRepo)
@@ -97,6 +100,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 		r.Post("/auth/login", authH.Login)
 		r.Post("/auth/refresh", authH.Refresh)
 		r.Post("/auth/logout", authH.Logout)
+		r.Post("/auth/google", authH.GoogleLogin)
 
 		// --- Public with optional auth ---
 		r.Group(func(r chi.Router) {
@@ -252,5 +256,59 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 		r.Handle("/files/*", http.StripPrefix("/files/", fileServer))
 	}
 
+	// SPA serving — serve built frontend from StaticDir
+	if cfg.StaticDir != "" {
+		spaHandler := spaFileServer(cfg.StaticDir)
+		r.NotFound(spaHandler.ServeHTTP)
+	}
+
 	return r
 }
+
+// spaFileServer serves static files and falls back to index.html for SPA routes.
+func spaFileServer(staticDir string) http.Handler {
+	fsys := http.Dir(staticDir)
+	fileServer := http.FileServer(fsys)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		// Skip API/ws/file routes (shouldn't reach here, but safety net)
+		if strings.HasPrefix(path, "/api/") || strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/files/") || path == "/health" || path == "/ready" {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Try to serve the static file
+		fullPath := filepath.Join(staticDir, filepath.Clean(path))
+		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Check if it's a static asset that doesn't exist (return 404, not index.html)
+		if hasStaticExtension(path) {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Fallback to index.html for SPA client-side routing
+		indexPath := filepath.Join(staticDir, "index.html")
+		if _, err := os.Stat(indexPath); err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeFile(w, r, indexPath)
+	})
+}
+
+func hasStaticExtension(path string) bool {
+	staticExts := []string{".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".map", ".webp", ".avif"}
+	for _, ext := range staticExts {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
+}
+

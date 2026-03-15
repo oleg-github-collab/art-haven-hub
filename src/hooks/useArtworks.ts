@@ -7,35 +7,30 @@ export interface Artwork {
   title: string;
   description?: string;
   full_description?: string;
-  category_id?: string;
-  medium?: string;
-  style?: string;
-  width_cm?: number;
-  height_cm?: number;
-  depth_cm?: number;
-  year_created?: number;
-  condition: string;
+  category_id: string;
+  subcategory?: string;
+  condition?: string;
   status: string;
   price_cents: number;
   currency: string;
   country?: string;
   city?: string;
-  cover_image?: string;
   images: string[];
+  emoji?: string;
+  width_cm?: number;
+  height_cm?: number;
   tags: string[];
-  is_original: boolean;
-  is_framed: boolean;
-  is_signed: boolean;
-  shipping_type: string;
-  shipping_price_cents: number;
-  is_auction: boolean;
-  auction_end_at?: string;
-  current_bid_cents: number;
-  bid_count: number;
   view_count: number;
   like_count: number;
+  is_biddable: boolean;
+  current_bid_cents: number;
+  bid_count: number;
+  shipping_options: string[];
+  return_policy?: string;
   is_promoted: boolean;
   promoted_until?: string;
+  is_featured: boolean;
+  translations?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   artist?: {
@@ -44,8 +39,15 @@ export interface Artwork {
     handle: string;
     avatar_url?: string;
   };
-  category?: { id: string; name: string; slug: string };
   is_favorited?: boolean;
+  avg_rating?: number;
+  review_count?: number;
+}
+
+export interface ArtworkListResult {
+  items: Artwork[];
+  total: number;
+  next_cursor?: string;
 }
 
 export interface ArtworkFilters {
@@ -59,6 +61,7 @@ export interface ArtworkFilters {
   limit?: number;
   offset?: number;
   artist_id?: string;
+  status?: string;
 }
 
 function buildQuery(filters: ArtworkFilters): string {
@@ -72,20 +75,20 @@ function buildQuery(filters: ArtworkFilters): string {
 export function useArtworks(filters: ArtworkFilters = {}) {
   return useQuery({
     queryKey: ["artworks", filters],
-    queryFn: () => apiGet<Artwork[]>(`/api/v1/artworks?${buildQuery(filters)}`),
+    queryFn: () => apiGet<ArtworkListResult>(`/api/v1/artworks?${buildQuery(filters)}`),
   });
 }
 
 export function useInfiniteArtworks(filters: ArtworkFilters = {}) {
   return useInfiniteQuery({
     queryKey: ["artworks-infinite", filters],
-    queryFn: ({ pageParam = 0 }) =>
-      apiGet<Artwork[]>(`/api/v1/artworks?${buildQuery({ ...filters, offset: pageParam, limit: filters.limit || 24 })}`),
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < (filters.limit || 24)) return undefined;
-      return allPages.flat().length;
+    queryFn: ({ pageParam = "" }) => {
+      const q = buildQuery({ ...filters, limit: filters.limit || 24 });
+      const cursor = pageParam ? `&cursor=${pageParam}` : "";
+      return apiGet<ArtworkListResult>(`/api/v1/artworks?${q}${cursor}`);
     },
-    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
+    initialPageParam: "",
   });
 }
 
@@ -125,11 +128,17 @@ export function useDeleteArtwork() {
   });
 }
 
+export interface Category {
+  id: string;
+  label: string;
+  sort: number;
+}
+
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
-    queryFn: () => apiGet<{ id: string; name: string; slug: string }[]>("/api/v1/categories"),
-    staleTime: 1000 * 60 * 60, // 1h
+    queryFn: () => apiGet<Category[]>("/api/v1/categories"),
+    staleTime: 1000 * 60 * 60,
   });
 }
 
@@ -175,4 +184,9 @@ export function useRecommendations() {
     queryKey: ["recommendations"],
     queryFn: () => apiGet<Artwork[]>("/api/v1/recommendations"),
   });
+}
+
+// Helper to format price from cents
+export function formatPrice(cents: number, currency = "EUR"): string {
+  return new Intl.NumberFormat("uk-UA", { style: "currency", currency }).format(cents / 100);
 }

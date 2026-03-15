@@ -80,6 +80,22 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.NoContent(w)
 }
 
+func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	var input service.GoogleLoginInput
+	if err := validate.DecodeAndValidate(r, &input); err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	result, err := h.authService.GoogleLogin(r.Context(), &input)
+	if err != nil {
+		response.AppError(w, err)
+		return
+	}
+
+	response.OK(w, result)
+}
+
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

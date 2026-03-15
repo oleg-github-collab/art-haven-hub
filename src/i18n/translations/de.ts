@@ -12,6 +12,9 @@ const de: Translations = {
     panel: "Dashboard",
     login: "Anmelden",
     search: "Suche",
+    profile: "Profil",
+    logout: "Abmelden",
+    signup: "Registrieren",
   },
   footer: {
     subscribe_title: "Bleiben Sie auf dem Laufenden",
@@ -450,6 +453,18 @@ const de: Translations = {
     benefit_1: "Kunst grenzenlos verkaufen",
     benefit_2: "KI-Übersetzung in 5 Sprachen",
     benefit_3: "AR-Vorschau in Ihrem Interieur",
+    google_login: "Weiter mit Google",
+  },
+  auth_prompt: {
+    title: "Anmeldung erforderlich",
+    desc: "Erstellen Sie ein Konto oder melden Sie sich an, um vollen Zugang zur Plattform zu erhalten. Es ist kostenlos!",
+    buy_sell: "Kunst kaufen und verkaufen",
+    messaging: "Mit Künstlern chatten",
+    dashboard: "Ihre Werke verwalten",
+    community: "Der Community beitreten",
+    signup_cta: "Konto erstellen",
+    login_cta: "Bereits ein Konto? Anmelden",
+    free_note: "Registrierung ist kostenlos. Keine versteckten Gebühren.",
   },
   payment: {
     success_title: "Zahlung erfolgreich!",

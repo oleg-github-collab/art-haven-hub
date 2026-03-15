@@ -23,30 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/context";
 import AnalyticsCharts from "@/components/dashboard/AnalyticsCharts";
-
-/* ── fake artwork data ──────────────────────────────── */
-interface Artwork {
-  id: number;
-  title: string;
-  emoji: string;
-  price: number;
-  status: "active" | "draft" | "sold" | "promoted";
-  views: number;
-  likes: number;
-  created: string;
-  description: string;
-  translations: Record<string, string>;
-  promotedUntil?: string;
-}
-
-const initialArtworks: Artwork[] = [
-  { id: 1, title: "Абстрактний пейзаж", emoji: "🎨", price: 1200, status: "active", views: 156, likes: 24, created: "2 дні тому", description: "Оригінальна робота олійними фарбами.", translations: {} },
-  { id: 2, title: "Карпатський туман", emoji: "🌄", price: 850, status: "promoted", views: 312, likes: 45, created: "1 тиждень тому", description: "Туманний ранок у Карпатах.", translations: { en: "Foggy morning in Carpathians." }, promotedUntil: "5d" },
-  { id: 3, title: "Весняний Відень", emoji: "🌸", price: 680, status: "active", views: 89, likes: 12, created: "5 днів тому", description: "Акварельна серія.", translations: {} },
-  { id: 4, title: "Море вночі", emoji: "🌊", price: 1500, status: "sold", views: 234, likes: 56, created: "2 тижні тому", description: "Нічне море, масло.", translations: { en: "Night sea, oil.", de: "Nächtliches Meer, Öl." } },
-  { id: 5, title: "Портрет з квітами", emoji: "💐", price: 950, status: "draft", views: 0, likes: 0, created: "вчора", description: "Портрет молодої жінки.", translations: {} },
-  { id: 6, title: "Старе місто", emoji: "🏘️", price: 420, status: "active", views: 67, likes: 8, created: "3 дні тому", description: "Графіка тушшю.", translations: {} },
-];
+import { useDashboardStats, useDashboardArtworks, type DashboardArtwork } from "@/hooks/useDashboard";
 
 const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
@@ -86,14 +63,16 @@ export default function ArtistDashboardPage() {
   const { t } = useLanguage();
   const d = t.dashboard;
   const { toast } = useToast();
-  const [artworks, setArtworks] = useState<Artwork[]>(initialArtworks);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<string>("all");
-  const [translateDialog, setTranslateDialog] = useState<{ open: boolean; ids: number[] }>({ open: false, ids: [] });
-  const [promoDialog, setPromoDialog] = useState<{ open: boolean; ids: number[] }>({ open: false, ids: [] });
+  const [translateDialog, setTranslateDialog] = useState<{ open: boolean; ids: string[] }>({ open: false, ids: [] });
+  const [promoDialog, setPromoDialog] = useState<{ open: boolean; ids: string[] }>({ open: false, ids: [] });
   const [translateLang, setTranslateLang] = useState("en");
   const [translating, setTranslating] = useState(false);
   const [selectedPromo, setSelectedPromo] = useState(1);
+
+  const { data: stats } = useDashboardStats();
+  const { data: artworks, isLoading } = useDashboardArtworks(filter === "all" ? undefined : filter);
 
   const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; dot: string }> = {
     active: { label: d.status_active, variant: "secondary", dot: "bg-green-500" },
@@ -102,55 +81,41 @@ export default function ArtistDashboardPage() {
     draft: { label: d.status_draft, variant: "outline", dot: "bg-muted-foreground/50" },
   };
 
-  const filtered = useMemo(() => {
-    if (filter === "all") return artworks;
-    return artworks.filter((a) => a.status === filter);
-  }, [artworks, filter]);
-
+  const filtered = artworks || [];
   const allSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
   const toggleAll = () => allSelected ? setSelected(new Set()) : setSelected(new Set(filtered.map((a) => a.id)));
-  const toggleOne = (id: number) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleOne = (id: string) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const handleTranslate = () => {
     setTranslating(true);
     setTimeout(() => {
-      const lang = LANGUAGES.find((l) => l.code === translateLang)!;
-      setArtworks((prev) =>
-        prev.map((a) => !translateDialog.ids.includes(a.id) ? a : {
-          ...a, translations: { ...a.translations, [translateLang]: `[${lang.flag} AI] ${a.description.slice(0, 60)}...` },
-        })
-      );
       setTranslating(false);
       setTranslateDialog({ open: false, ids: [] });
       setSelected(new Set());
-      toast({ title: d.translate_done, description: `${translateDialog.ids.length} ${d.translated_desc} ${lang.label}` });
+      toast({ title: d.translate_done, description: `${translateDialog.ids.length} ${d.translated_desc}` });
     }, 2000);
   };
 
   const handlePromote = () => {
     const price = PROMO_PRICES[selectedPromo] || 0;
-    setArtworks((prev) =>
-      prev.map((a) => !promoDialog.ids.includes(a.id) ? a : { ...a, status: "promoted" as const, promotedUntil: `${selectedPromo}d` })
-    );
     setPromoDialog({ open: false, ids: [] });
     setSelected(new Set());
     toast({ title: d.works_promoted, description: `${promoDialog.ids.length} ${d.works_promoted_desc} ${selectedPromo}d — €${price * promoDialog.ids.length}` });
   };
 
   const handleBulkDelete = () => {
-    setArtworks((prev) => prev.filter((a) => !selected.has(a.id)));
     toast({ title: d.deleted, description: `${selected.size} ${d.deleted_desc}` });
     setSelected(new Set());
   };
 
-  const stats = useMemo(() => ({
-    total: artworks.length,
-    active: artworks.filter((a) => a.status === "active" || a.status === "promoted").length,
-    sold: artworks.filter((a) => a.status === "sold").length,
-    views: artworks.reduce((s, a) => s + a.views, 0),
-    likes: artworks.reduce((s, a) => s + a.likes, 0),
-    revenue: artworks.filter((a) => a.status === "sold").reduce((s, a) => s + a.price, 0),
-  }), [artworks]);
+  const displayStats = {
+    total: stats?.total || 0,
+    active: stats?.active || 0,
+    sold: stats?.sold || 0,
+    views: stats?.views || 0,
+    likes: stats?.likes || 0,
+    revenue: stats?.revenue || 0,
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,12 +144,12 @@ export default function ArtistDashboardPage() {
       <div className="container max-w-5xl py-6 sm:py-8">
         {/* Stats */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatCard label={d.total} value={stats.total} icon={Package} accent="bg-foreground/10 text-foreground" />
-          <StatCard label={d.active} value={stats.active} icon={Eye} accent="bg-primary/10 text-primary" />
-          <StatCard label={d.sold} value={stats.sold} icon={Check} accent="bg-green-500/10 text-green-600" />
-          <StatCard label={d.views} value={stats.views.toLocaleString()} icon={BarChart3} accent="bg-blue-500/10 text-blue-600" />
-          <StatCard label={d.likes} value={stats.likes} icon={Heart} accent="bg-red-500/10 text-red-500" />
-          <StatCard label={d.revenue} value={`€${stats.revenue.toLocaleString()}`} icon={Euro} accent="bg-primary/10 text-primary" />
+          <StatCard label={d.total} value={displayStats.total} icon={Package} accent="bg-foreground/10 text-foreground" />
+          <StatCard label={d.active} value={displayStats.active} icon={Eye} accent="bg-primary/10 text-primary" />
+          <StatCard label={d.sold} value={displayStats.sold} icon={Check} accent="bg-green-500/10 text-green-600" />
+          <StatCard label={d.views} value={displayStats.views.toLocaleString()} icon={BarChart3} accent="bg-blue-500/10 text-blue-600" />
+          <StatCard label={d.likes} value={displayStats.likes} icon={Heart} accent="bg-red-500/10 text-red-500" />
+          <StatCard label={d.revenue} value={`€${displayStats.revenue.toLocaleString()}`} icon={Euro} accent="bg-primary/10 text-primary" />
         </div>
 
         {/* Analytics Charts */}
@@ -257,6 +222,12 @@ export default function ArtistDashboardPage() {
             <span className="w-10" />
           </div>
 
+          {isLoading && (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              Завантаження...
+            </div>
+          )}
+
           {filtered.map((art, i) => (
             <motion.div
               key={art.id}
@@ -273,34 +244,27 @@ export default function ArtistDashboardPage() {
 
               <div className="flex flex-1 items-center gap-3 min-w-0">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary/60 text-xl shrink-0 ring-1 ring-border/50">
-                  {art.emoji}
+                  {art.cover_image ? "🖼️" : "🎨"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{art.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">{art.created}</p>
+                  <p className="truncate text-xs text-muted-foreground">{new Date(art.created_at).toLocaleDateString("uk-UA")}</p>
                 </div>
               </div>
 
               <span className="w-20 text-center text-sm font-semibold">€{art.price.toLocaleString()}</span>
 
               <div className="flex w-24 justify-center">
-                <Badge variant={statusConfig[art.status].variant} className="text-xs gap-1.5 rounded-full px-2.5">
-                  <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[art.status].dot}`} />
-                  {statusConfig[art.status].label}
+                <Badge variant={statusConfig[art.status]?.variant || "outline"} className="text-xs gap-1.5 rounded-full px-2.5">
+                  <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[art.status]?.dot || "bg-muted-foreground"}`} />
+                  {statusConfig[art.status]?.label || art.status}
                 </Badge>
               </div>
 
               <span className="w-20 text-center text-sm text-muted-foreground">{art.views}</span>
 
               <div className="flex w-16 justify-center gap-0.5">
-                {Object.keys(art.translations).length > 0 ? (
-                  Object.keys(art.translations).map((code) => {
-                    const lang = LANGUAGES.find((l) => l.code === code);
-                    return <span key={code} className="text-xs" title={lang?.label}>{lang?.flag}</span>;
-                  })
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
+                <span className="text-xs text-muted-foreground">—</span>
               </div>
 
               <DropdownMenu>
@@ -326,7 +290,7 @@ export default function ArtistDashboardPage() {
             </motion.div>
           ))}
 
-          {filtered.length === 0 && (
+          {!isLoading && filtered.length === 0 && (
             <div className="py-16 text-center text-sm text-muted-foreground">
               <Package className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
               <p>{d.no_works}</p>
@@ -335,7 +299,7 @@ export default function ArtistDashboardPage() {
         </div>
 
         {/* Active promos hint */}
-        {artworks.some((a) => a.status === "promoted") && (
+        {filtered.some((a) => a.is_promoted) && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -347,8 +311,8 @@ export default function ArtistDashboardPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold">{d.active_promos}</p>
-                {artworks.filter((a) => a.status === "promoted").map((a) => (
-                  <p key={a.id} className="text-xs text-muted-foreground mt-1">«{a.title}» — {a.promotedUntil}</p>
+                {filtered.filter((a) => a.is_promoted).map((a) => (
+                  <p key={a.id} className="text-xs text-muted-foreground mt-1">«{a.title}» — {a.promoted_until ? new Date(a.promoted_until).toLocaleDateString("uk-UA") : ""}</p>
                 ))}
               </div>
             </div>
@@ -379,12 +343,11 @@ export default function ArtistDashboardPage() {
             <div className="rounded-xl bg-muted/50 p-3">
               <p className="mb-2 text-xs font-medium text-muted-foreground">{d.will_translate}</p>
               {translateDialog.ids.map((id) => {
-                const a = artworks.find((x) => x.id === id);
+                const a = filtered.find((x) => x.id === id);
                 return a ? (
                   <div key={id} className="flex items-center gap-2 py-1 text-sm">
-                    <span>{a.emoji}</span>
+                    <span>🎨</span>
                     <span className="truncate">{a.title}</span>
-                    {a.translations[translateLang] && <Badge variant="outline" className="ml-auto text-[10px] rounded-full">{d.has_translation}</Badge>}
                   </div>
                 ) : null;
               })}

@@ -28,6 +28,9 @@ type Config struct {
 	JWTAccessDuration  time.Duration `env:"JWT_ACCESS_DURATION" envDefault:"15m"`
 	JWTRefreshDuration time.Duration `env:"JWT_REFRESH_DURATION" envDefault:"720h"`
 
+	// Google OAuth
+	GoogleClientID string `env:"GOOGLE_CLIENT_ID"`
+
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:5173,http://localhost:8080"`
 
@@ -52,6 +55,9 @@ type Config struct {
 	// Rate Limiting
 	RateLimitRPS   float64 `env:"RATE_LIMIT_RPS" envDefault:"100"`
 	RateLimitBurst int     `env:"RATE_LIMIT_BURST" envDefault:"200"`
+
+	// Static files (SPA)
+	StaticDir string `env:"STATIC_DIR" envDefault:""`
 
 	// Migrations
 	MigrationsDir string `env:"MIGRATIONS_DIR" envDefault:"migrations"`
