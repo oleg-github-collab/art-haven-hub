@@ -81,6 +81,8 @@ const App = () => (
               <Route path="/room-visualizer" element={<ProtectedRoute><RoomVisualizerPage /></ProtectedRoute>} />
               <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
               <Route path="/payment/error" element={<ProtectedRoute><PaymentErrorPage /></ProtectedRoute>} />
+              <Route path="/social-hub" element={<ProtectedRoute><SocialHubPage /></ProtectedRoute>} />
+              <Route path="/workflow-builder" element={<ProtectedRoute><WorkflowBuilderPage /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
