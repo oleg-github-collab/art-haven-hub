@@ -34,6 +34,8 @@ import SignUpPage from "./pages/SignUpPage";
 import RoomVisualizerPage from "./pages/RoomVisualizerPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import PaymentErrorPage from "./pages/PaymentErrorPage";
+import WorkflowBuilderPage from "./pages/WorkflowBuilderPage";
+import SocialHubPage from "./pages/SocialHubPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -78,6 +80,8 @@ const App = () => (
               <Route path="/room-visualizer" element={<ProtectedRoute><RoomVisualizerPage /></ProtectedRoute>} />
               <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
               <Route path="/payment/error" element={<ProtectedRoute><PaymentErrorPage /></ProtectedRoute>} />
+              <Route path="/social-hub" element={<ProtectedRoute><SocialHubPage /></ProtectedRoute>} />
+              <Route path="/workflow-builder" element={<ProtectedRoute><WorkflowBuilderPage /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
