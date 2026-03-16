@@ -30,7 +30,7 @@ export function GradientMesh({ scrollProgress, mouse, mouseUpdate }: GradientMes
   });
 
   return (
-    <mesh ref={meshRef}>
+    <mesh ref={meshRef} frustumCulled={false}>
       <planeGeometry args={[2, 2]} />
       <shaderMaterial
         vertexShader={gradientVertexShader}

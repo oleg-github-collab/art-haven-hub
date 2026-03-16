@@ -4,7 +4,8 @@ export const gradientVertexShader = /* glsl */ `
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // Render directly to clip space — fills entire viewport
+    gl_Position = vec4(position.xy, 0.0, 1.0);
   }
 `;
 

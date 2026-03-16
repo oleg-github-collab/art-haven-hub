@@ -171,6 +171,21 @@ func (h *UserHandler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, users)
 }
 
+func (h *UserHandler) ListArtists(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	city := r.URL.Query().Get("city")
+	tag := r.URL.Query().Get("tag")
+	limit, offset := parsePagination(r)
+
+	result, err := h.userService.ListArtists(r.Context(), search, city, tag, limit, offset)
+	if err != nil {
+		response.AppError(w, err)
+		return
+	}
+
+	response.OK(w, result)
+}
+
 func parsePagination(r *http.Request) (int, int) {
 	limit := 20
 	offset := 0

@@ -179,6 +179,35 @@ func (s *UserService) GetFollowing(ctx context.Context, userID uuid.UUID, limit,
 	return s.userRepo.GetFollowing(ctx, userID, limit, offset)
 }
 
+type ArtistListResult struct {
+	Artists []model.User `json:"artists"`
+	Total   int          `json:"total"`
+}
+
+func (s *UserService) ListArtists(ctx context.Context, search, city, tag string, limit, offset int) (*ArtistListResult, error) {
+	users, err := s.userRepo.ListArtists(ctx, search, city, tag, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("listing artists: %w", err)
+	}
+
+	// Enrich with follower counts and roles
+	for i := range users {
+		followerCount, _ := s.userRepo.GetFollowerCount(ctx, users[i].ID)
+		followingCount, _ := s.userRepo.GetFollowingCount(ctx, users[i].ID)
+		roles, _ := s.userRepo.GetRoles(ctx, users[i].ID)
+		users[i].FollowerCount = followerCount
+		users[i].FollowingCount = followingCount
+		users[i].Roles = roles
+	}
+
+	total, err := s.userRepo.CountArtists(ctx, search, city, tag)
+	if err != nil {
+		return nil, fmt.Errorf("counting artists: %w", err)
+	}
+
+	return &ArtistListResult{Artists: users, Total: total}, nil
+}
+
 func isAllowedImageMIME(mime string) bool {
 	allowed := map[string]bool{
 		"image/jpeg": true,

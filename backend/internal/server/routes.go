@@ -116,6 +116,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 		})
 
 		// --- Public ---
+		r.Get("/artists", userH.ListArtists)
 		r.Get("/categories", artworkH.GetCategories)
 		r.Get("/board", boardH.List)
 		r.Get("/events", eventH.List)

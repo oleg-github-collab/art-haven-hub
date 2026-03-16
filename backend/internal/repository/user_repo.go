@@ -247,3 +247,60 @@ func (r *UserRepo) GetFollowing(ctx context.Context, userID uuid.UUID, limit, of
 		userID, limit, offset)
 	return users, err
 }
+
+// --- Artists listing ---
+
+func (r *UserRepo) ListArtists(ctx context.Context, search, city, tag string, limit, offset int) ([]model.User, error) {
+	query := `SELECT u.* FROM users u WHERE 1=1`
+	args := []interface{}{}
+	idx := 1
+
+	if search != "" {
+		query += fmt.Sprintf(` AND (u.name ILIKE $%d OR u.handle ILIKE $%d OR u.bio ILIKE $%d)`, idx, idx, idx)
+		args = append(args, "%"+search+"%")
+		idx++
+	}
+	if city != "" {
+		query += fmt.Sprintf(` AND u.location ILIKE $%d`, idx)
+		args = append(args, "%"+city+"%")
+		idx++
+	}
+	if tag != "" {
+		query += fmt.Sprintf(` AND $%d = ANY(u.tags)`, idx)
+		args = append(args, tag)
+		idx++
+	}
+
+	query += fmt.Sprintf(` ORDER BY u.created_at DESC LIMIT $%d OFFSET $%d`, idx, idx+1)
+	args = append(args, limit, offset)
+
+	var users []model.User
+	err := r.db.SelectContext(ctx, &users, query, args...)
+	return users, err
+}
+
+func (r *UserRepo) CountArtists(ctx context.Context, search, city, tag string) (int, error) {
+	query := `SELECT COUNT(*) FROM users u WHERE 1=1`
+	args := []interface{}{}
+	idx := 1
+
+	if search != "" {
+		query += fmt.Sprintf(` AND (u.name ILIKE $%d OR u.handle ILIKE $%d OR u.bio ILIKE $%d)`, idx, idx, idx)
+		args = append(args, "%"+search+"%")
+		idx++
+	}
+	if city != "" {
+		query += fmt.Sprintf(` AND u.location ILIKE $%d`, idx)
+		args = append(args, "%"+city+"%")
+		idx++
+	}
+	if tag != "" {
+		query += fmt.Sprintf(` AND $%d = ANY(u.tags)`, idx)
+		args = append(args, tag)
+		idx++
+	}
+
+	var count int
+	err := r.db.GetContext(ctx, &count, query, args...)
+	return count, err
+}

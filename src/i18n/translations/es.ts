@@ -140,6 +140,8 @@ const es: Translations = {
     title: "Artistas y especialistas",
     desc: "Encuentra socios, curadores, marchantes y otros profesionales creativos.",
     profile: "Perfil",
+    search: "Buscar artistas...",
+    no_results: "No se encontraron artistas",
   },
   events: {
     badge: "Calendario",

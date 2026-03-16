@@ -140,6 +140,8 @@ export interface Translations {
     title: string;
     desc: string;
     profile: string;
+    search: string;
+    no_results: string;
   };
   events: {
     badge: string;
