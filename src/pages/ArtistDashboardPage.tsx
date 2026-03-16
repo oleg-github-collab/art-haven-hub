@@ -134,10 +134,18 @@ export default function ArtistDashboardPage() {
               </div>
               <p className="text-sm text-muted-foreground max-w-md">{d.desc}</p>
             </div>
-            <Button className="gap-2 rounded-full hidden sm:flex">
-              <Plus className="h-4 w-4" />
-              {d.all_works === "Усі роботи" ? "Додати роботу" : "Add artwork"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link to="/social-hub">
+                <Button variant="outline" className="gap-2 rounded-full hidden sm:flex">
+                  <Megaphone className="h-4 w-4" />
+                  SMM Hub
+                </Button>
+              </Link>
+              <Button className="gap-2 rounded-full hidden sm:flex">
+                <Plus className="h-4 w-4" />
+                {d.all_works === "Усі роботи" ? "Додати роботу" : "Add artwork"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
