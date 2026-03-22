@@ -1,12 +1,13 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { motion, AnimatePresence, Reorder } from "framer-motion";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Image, Sparkles, Instagram, Facebook, Twitter, ShoppingBag,
-  Play, Save, Trash2, Plus, GripVertical, ChevronRight,
-  Zap, Clock, Globe, Palette, Package, ArrowRight,
+  Play, Save, Trash2, Plus, ChevronRight,
+  Zap, Clock, Globe, Package, ArrowRight,
   BookTemplate, X, Check, Info, Workflow, Settings2,
   Copy, MoreHorizontal, Layers, FileText, Video,
-  PenTool, MousePointerClick, Eye, Send,
+  Eye, Send, AlertTriangle, CheckCircle2, Loader2,
+  ZoomIn, ZoomOut, Maximize,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,6 +35,12 @@ interface WorkflowNode {
   icon: string;
   config: Record<string, any>;
   position: { x: number; y: number };
+  status?: "idle" | "running" | "done" | "error";
+}
+
+interface Connection {
+  from: string;
+  to: string;
 }
 
 interface WorkflowTemplate {
@@ -41,6 +48,7 @@ interface WorkflowTemplate {
   name: string;
   description: string;
   nodes: Omit<WorkflowNode, "id">[];
+  connections?: { fromIdx: number; toIdx: number }[];
   icon: string;
 }
 
@@ -66,12 +74,20 @@ const PLATFORM_ICONS: Record<string, React.ElementType> = {
   printful: Package,
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  source: "border-emerald-500/40",
+  ai: "border-violet-500/40",
+  platform: "border-blue-500/40",
+  action: "border-amber-500/40",
+};
+
 /* ─── Available Node Types ─── */
 const NODE_CATEGORIES = [
   {
     id: "source",
     label: "Джерело",
     labelEn: "Source",
+    color: "text-emerald-500",
     nodes: [
       { type: "artwork_source", label: "Вибрати роботи", labelEn: "Select Artworks", icon: "🎨", desc: "Оберіть роботи для публікації", descEn: "Choose artworks to publish" },
       { type: "text_source", label: "Текстовий пост", labelEn: "Text Post", icon: "📝", desc: "Напишіть текст для публікації", descEn: "Write post text" },
@@ -83,6 +99,7 @@ const NODE_CATEGORIES = [
     id: "ai",
     label: "ШІ обробка",
     labelEn: "AI Processing",
+    color: "text-violet-500",
     nodes: [
       { type: "ai_adapt", label: "ШІ адаптація", labelEn: "AI Adapt", icon: "✨", desc: "Автоматична адаптація під платформу", descEn: "Auto-adapt content per platform" },
       { type: "ai_hashtags", label: "ШІ хештеги", labelEn: "AI Hashtags", icon: "🏷️", desc: "Генерація релевантних хештегів", descEn: "Generate relevant hashtags" },
@@ -94,6 +111,7 @@ const NODE_CATEGORIES = [
     id: "platform",
     label: "Платформи",
     labelEn: "Platforms",
+    color: "text-blue-500",
     nodes: [
       { type: "instagram", label: "Instagram", icon: "📸", desc: "Пост, Reels, Stories" },
       { type: "pinterest", label: "Pinterest", icon: "📌", desc: "Pin з посиланням на маркет" },
@@ -108,6 +126,7 @@ const NODE_CATEGORIES = [
     id: "action",
     label: "Дії",
     labelEn: "Actions",
+    color: "text-amber-500",
     nodes: [
       { type: "schedule", label: "Розклад", labelEn: "Schedule", icon: "⏰", desc: "Запланувати час публікації", descEn: "Schedule publish time" },
       { type: "printful_sync", label: "Printful синхронізація", labelEn: "Printful Sync", icon: "📦", desc: "Синхронізація з Printful", descEn: "Sync with Printful" },
@@ -118,69 +137,73 @@ const NODE_CATEGORIES = [
 
 const TEMPLATES: WorkflowTemplate[] = [
   {
-    id: "instagram_post",
-    name: "Instagram пост з картиною",
-    description: "Вибір роботи → ШІ адаптація → Хештеги → Instagram",
-    icon: "📸",
+    id: "instagram_post", name: "Instagram пост з картиною", description: "Вибір роботи → ШІ адаптація → Хештеги → Instagram", icon: "📸",
     nodes: [
       { type: "artwork_source", label: "Вибрати роботи", icon: "🎨", config: {}, position: { x: 60, y: 120 } },
-      { type: "ai_adapt", label: "ШІ адаптація", icon: "✨", config: { platform: "instagram" }, position: { x: 340, y: 120 } },
-      { type: "ai_hashtags", label: "ШІ хештеги", icon: "🏷️", config: {}, position: { x: 620, y: 120 } },
-      { type: "instagram", label: "Instagram", icon: "📸", config: {}, position: { x: 900, y: 120 } },
+      { type: "ai_adapt", label: "ШІ адаптація", icon: "✨", config: { platform: "instagram" }, position: { x: 320, y: 120 } },
+      { type: "ai_hashtags", label: "ШІ хештеги", icon: "🏷️", config: {}, position: { x: 580, y: 120 } },
+      { type: "instagram", label: "Instagram", icon: "📸", config: {}, position: { x: 840, y: 120 } },
     ],
+    connections: [{ fromIdx: 0, toIdx: 1 }, { fromIdx: 1, toIdx: 2 }, { fromIdx: 2, toIdx: 3 }],
   },
   {
-    id: "multi_platform",
-    name: "Мультиплатформна кампанія",
-    description: "Одна робота → AI → 4 платформи одночасно",
-    icon: "🚀",
+    id: "multi_platform", name: "Мультиплатформна кампанія", description: "Одна робота → AI → 4 платформи", icon: "🚀",
     nodes: [
       { type: "artwork_source", label: "Вибрати роботи", icon: "🎨", config: {}, position: { x: 60, y: 200 } },
-      { type: "ai_adapt", label: "ШІ адаптація", icon: "✨", config: {}, position: { x: 340, y: 200 } },
-      { type: "instagram", label: "Instagram", icon: "📸", config: {}, position: { x: 640, y: 60 } },
-      { type: "pinterest", label: "Pinterest", icon: "📌", config: {}, position: { x: 640, y: 170 } },
-      { type: "facebook", label: "Facebook", icon: "📘", config: {}, position: { x: 640, y: 280 } },
-      { type: "threads", label: "Threads", icon: "🧵", config: {}, position: { x: 640, y: 390 } },
+      { type: "ai_adapt", label: "ШІ адаптація", icon: "✨", config: {}, position: { x: 320, y: 200 } },
+      { type: "instagram", label: "Instagram", icon: "📸", config: {}, position: { x: 600, y: 60 } },
+      { type: "pinterest", label: "Pinterest", icon: "📌", config: {}, position: { x: 600, y: 170 } },
+      { type: "facebook", label: "Facebook", icon: "📘", config: {}, position: { x: 600, y: 280 } },
+      { type: "threads", label: "Threads", icon: "🧵", config: {}, position: { x: 600, y: 390 } },
     ],
+    connections: [{ fromIdx: 0, toIdx: 1 }, { fromIdx: 1, toIdx: 2 }, { fromIdx: 1, toIdx: 3 }, { fromIdx: 1, toIdx: 4 }, { fromIdx: 1, toIdx: 5 }],
   },
   {
-    id: "etsy_printful",
-    name: "Etsy + Printful товар",
-    description: "Робота → Printful мокапи → Etsy публікація",
-    icon: "🛒",
+    id: "etsy_printful", name: "Etsy + Printful товар", description: "Робота → Printful мокапи → Etsy публікація", icon: "🛒",
     nodes: [
       { type: "artwork_source", label: "Вибрати роботи", icon: "🎨", config: {}, position: { x: 60, y: 150 } },
-      { type: "ai_image_edit", label: "ШІ обробка", icon: "🖌️", config: {}, position: { x: 340, y: 150 } },
-      { type: "printful_sync", label: "Printful", icon: "📦", config: {}, position: { x: 620, y: 80 } },
-      { type: "etsy", label: "Etsy", icon: "🛒", config: {}, position: { x: 620, y: 240 } },
+      { type: "ai_image_edit", label: "ШІ обробка", icon: "🖌️", config: {}, position: { x: 320, y: 150 } },
+      { type: "printful_sync", label: "Printful", icon: "📦", config: {}, position: { x: 580, y: 80 } },
+      { type: "etsy", label: "Etsy", icon: "🛒", config: {}, position: { x: 580, y: 240 } },
     ],
+    connections: [{ fromIdx: 0, toIdx: 1 }, { fromIdx: 1, toIdx: 2 }, { fromIdx: 1, toIdx: 3 }],
   },
   {
-    id: "tiktok_reels",
-    name: "TikTok + Reels кампанія",
-    description: "Відео → ШІ монтаж → TikTok + Instagram Reels",
-    icon: "🎬",
+    id: "tiktok_reels", name: "TikTok + Reels кампанія", description: "Відео → ШІ монтаж → TikTok + Reels", icon: "🎬",
     nodes: [
       { type: "video_source", label: "Відео", icon: "🎬", config: {}, position: { x: 60, y: 150 } },
-      { type: "ai_adapt", label: "ШІ адаптація", icon: "✨", config: {}, position: { x: 340, y: 150 } },
-      { type: "tiktok", label: "TikTok", icon: "🎵", config: {}, position: { x: 620, y: 80 } },
-      { type: "instagram", label: "Instagram", icon: "📸", config: { format: "reels" }, position: { x: 620, y: 240 } },
+      { type: "ai_adapt", label: "ШІ адаптація", icon: "✨", config: {}, position: { x: 320, y: 150 } },
+      { type: "tiktok", label: "TikTok", icon: "🎵", config: {}, position: { x: 580, y: 80 } },
+      { type: "instagram", label: "Instagram", icon: "📸", config: { format: "reels" }, position: { x: 580, y: 240 } },
     ],
+    connections: [{ fromIdx: 0, toIdx: 1 }, { fromIdx: 1, toIdx: 2 }, { fromIdx: 1, toIdx: 3 }],
   },
 ];
 
+/* ─── Helpers ─── */
+function getNodeCategory(type: string): string {
+  for (const cat of NODE_CATEGORIES) {
+    if (cat.nodes.some(n => n.type === type)) return cat.id;
+  }
+  return "action";
+}
+
 /* ─── Node Component ─── */
 function WorkflowNodeCard({
-  node, isSelected, onSelect, onDelete, onDragEnd,
+  node, isSelected, onSelect, onDelete, onDragEnd, onStartConnect, connectingFrom,
 }: {
   node: WorkflowNode;
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onDragEnd: (pos: { x: number; y: number }) => void;
+  onStartConnect: (id: string) => void;
+  connectingFrom: string | null;
 }) {
   const isPlatform = Object.keys(PLATFORM_COLORS).includes(node.type);
   const PlatformIcon = isPlatform ? PLATFORM_ICONS[node.type] : null;
+  const category = getNodeCategory(node.type);
+  const catBorder = CATEGORY_COLORS[category] || "border-border/60";
 
   return (
     <motion.div
@@ -197,17 +220,50 @@ function WorkflowNodeCard({
       exit={{ opacity: 0, scale: 0.6 }}
       whileDrag={{ scale: 1.08, zIndex: 50 }}
       onClick={onSelect}
-      className={`absolute cursor-grab active:cursor-grabbing select-none group`}
+      className="absolute cursor-grab active:cursor-grabbing select-none group"
       style={{ left: node.position.x, top: node.position.y }}
     >
-      <div className={`relative flex items-center gap-3 rounded-2xl border-2 px-4 py-3 backdrop-blur-md transition-all min-w-[160px] ${
+      <div className={`relative flex items-center gap-3 rounded-2xl border-2 px-4 py-3 backdrop-blur-md transition-all min-w-[170px] ${
         isSelected
           ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-          : "border-border/60 bg-card/80 hover:border-primary/40 hover:shadow-md"
+          : `${catBorder} bg-card/90 hover:border-primary/40 hover:shadow-md`
       }`}>
-        {/* Connector dots */}
-        <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-primary/60 bg-background" />
-        <div className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-primary/60 bg-primary/20" />
+        {/* Status indicator */}
+        {node.status && node.status !== "idle" && (
+          <div className="absolute -top-1.5 -left-1.5">
+            {node.status === "running" && <Loader2 className="h-4 w-4 text-primary animate-spin" />}
+            {node.status === "done" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+            {node.status === "error" && <AlertTriangle className="h-4 w-4 text-destructive" />}
+          </div>
+        )}
+
+        {/* Input connector */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (connectingFrom && connectingFrom !== node.id) {
+              onStartConnect(node.id);
+            }
+          }}
+          className={`absolute -left-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 transition-all ${
+            connectingFrom && connectingFrom !== node.id
+              ? "border-primary bg-primary/30 scale-125"
+              : "border-primary/50 bg-background hover:border-primary hover:bg-primary/20"
+          }`}
+        />
+
+        {/* Output connector */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onStartConnect(node.id);
+          }}
+          className={`absolute -right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 transition-all ${
+            connectingFrom === node.id
+              ? "border-primary bg-primary scale-125"
+              : "border-primary/50 bg-primary/20 hover:border-primary hover:bg-primary/40"
+          }`}
+        />
 
         {isPlatform && PlatformIcon ? (
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-white shrink-0 ${PLATFORM_COLORS[node.type]}`}>
@@ -222,7 +278,6 @@ function WorkflowNodeCard({
           <p className="text-[10px] text-muted-foreground capitalize">{node.type.replace(/_/g, " ")}</p>
         </div>
 
-        {/* Delete button */}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
@@ -241,38 +296,59 @@ export default function WorkflowBuilderPage() {
   const { toast } = useToast();
 
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState("");
   const [templateDialog, setTemplateDialog] = useState(false);
   const [saveDialog, setSaveDialog] = useState(false);
-  const [savedTemplates, setSavedTemplates] = useState<{ id: string; name: string; nodes: WorkflowNode[] }[]>([]);
+  const [savedTemplates, setSavedTemplates] = useState<{ id: string; name: string; nodes: WorkflowNode[]; connections: Connection[] }[]>([]);
   const [sidebarTab, setSidebarTab] = useState("nodes");
+  const [isRunning, setIsRunning] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const addNode = useCallback((type: string, label: string, icon: string) => {
     const id = `${type}_${Date.now()}`;
-    const offset = nodes.length * 30;
-    setNodes((prev) => [
-      ...prev,
-      { id, type, label, icon, config: {}, position: { x: 200 + offset, y: 150 + offset } },
-    ]);
+    const offset = nodes.length * 40;
+    setNodes(prev => [...prev, { id, type, label, icon, config: {}, position: { x: 200 + offset, y: 150 + (offset % 120) }, status: "idle" }]);
   }, [nodes.length]);
 
   const deleteNode = useCallback((id: string) => {
-    setNodes((prev) => prev.filter((n) => n.id !== id));
+    setNodes(prev => prev.filter(n => n.id !== id));
+    setConnections(prev => prev.filter(c => c.from !== id && c.to !== id));
     if (selectedNode === id) setSelectedNode(null);
   }, [selectedNode]);
 
   const updateNodePosition = useCallback((id: string, pos: { x: number; y: number }) => {
-    setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, position: { x: Math.max(0, pos.x), y: Math.max(0, pos.y) } } : n)));
+    setNodes(prev => prev.map(n => n.id === id ? { ...n, position: { x: Math.max(0, pos.x), y: Math.max(0, pos.y) } } : n));
   }, []);
 
+  const handleConnect = useCallback((nodeId: string) => {
+    if (!connectingFrom) {
+      setConnectingFrom(nodeId);
+      return;
+    }
+    if (connectingFrom === nodeId) {
+      setConnectingFrom(null);
+      return;
+    }
+    // Check for duplicate
+    const exists = connections.some(c => c.from === connectingFrom && c.to === nodeId);
+    if (!exists) {
+      setConnections(prev => [...prev, { from: connectingFrom, to: nodeId }]);
+    }
+    setConnectingFrom(null);
+  }, [connectingFrom, connections]);
+
   const loadTemplate = useCallback((template: WorkflowTemplate) => {
-    const newNodes = template.nodes.map((n, i) => ({
-      ...n,
-      id: `${n.type}_${Date.now()}_${i}`,
-    }));
+    const newNodes = template.nodes.map((n, i) => ({ ...n, id: `${n.type}_${Date.now()}_${i}`, status: "idle" as const }));
     setNodes(newNodes);
+    const newConns = (template.connections || []).map(c => ({
+      from: newNodes[c.fromIdx]?.id || "",
+      to: newNodes[c.toIdx]?.id || "",
+    })).filter(c => c.from && c.to);
+    setConnections(newConns);
     setWorkflowName(template.name);
     setTemplateDialog(false);
     toast({ title: wf.template_loaded, description: template.name });
@@ -280,19 +356,47 @@ export default function WorkflowBuilderPage() {
 
   const saveAsTemplate = useCallback(() => {
     if (!workflowName.trim()) return;
-    const tpl = { id: `custom_${Date.now()}`, name: workflowName, nodes: [...nodes] };
-    setSavedTemplates((prev) => [...prev, tpl]);
+    setSavedTemplates(prev => [...prev, { id: `custom_${Date.now()}`, name: workflowName, nodes: [...nodes], connections: [...connections] }]);
     setSaveDialog(false);
     toast({ title: wf.template_saved, description: workflowName });
-  }, [workflowName, nodes, toast, wf]);
+  }, [workflowName, nodes, connections, toast, wf]);
 
   const runWorkflow = useCallback(() => {
     if (nodes.length === 0) {
       toast({ title: wf.empty_workflow, variant: "destructive" });
       return;
     }
-    toast({ title: wf.workflow_started, description: `${nodes.length} ${wf.nodes_processing}` });
+    setIsRunning(true);
+    // Simulate sequential execution
+    nodes.forEach((node, i) => {
+      setTimeout(() => {
+        setNodes(prev => prev.map((n, j) => j === i ? { ...n, status: "running" } : n));
+      }, i * 800);
+      setTimeout(() => {
+        setNodes(prev => prev.map((n, j) => j === i ? { ...n, status: Math.random() > 0.9 ? "error" : "done" } : n));
+        if (i === nodes.length - 1) {
+          setTimeout(() => {
+            setIsRunning(false);
+            toast({ title: wf.workflow_started, description: `${nodes.length} ${wf.nodes_processing}` });
+          }, 400);
+        }
+      }, i * 800 + 600);
+    });
   }, [nodes, toast, wf]);
+
+  // Validation warnings
+  const warnings = useMemo(() => {
+    const w: string[] = [];
+    const hasSource = nodes.some(n => getNodeCategory(n.type) === "source");
+    const hasPlatform = nodes.some(n => getNodeCategory(n.type) === "platform");
+    if (nodes.length > 0 && !hasSource) w.push("Додайте вузол-джерело");
+    if (nodes.length > 0 && !hasPlatform) w.push("Додайте платформу для публікації");
+    // Check for disconnected nodes
+    const connectedIds = new Set(connections.flatMap(c => [c.from, c.to]));
+    const disconnected = nodes.filter(n => nodes.length > 1 && !connectedIds.has(n.id));
+    if (disconnected.length > 0) w.push(`${disconnected.length} вузл(ів) не з'єднані`);
+    return w;
+  }, [nodes, connections]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -316,6 +420,14 @@ export default function WorkflowBuilderPage() {
               placeholder={wf.workflow_name}
               className="w-48 rounded-full text-sm h-9"
             />
+
+            {warnings.length > 0 && (
+              <Badge variant="secondary" className="rounded-full gap-1 text-[10px] text-amber-600 bg-amber-500/10">
+                <AlertTriangle className="h-3 w-3" />
+                {warnings.length}
+              </Badge>
+            )}
+
             <Button size="sm" variant="outline" className="gap-1.5 rounded-full" onClick={() => setTemplateDialog(true)}>
               <BookTemplate className="h-4 w-4" />
               <span className="hidden sm:inline">{wf.templates}</span>
@@ -324,8 +436,8 @@ export default function WorkflowBuilderPage() {
               <Save className="h-4 w-4" />
               <span className="hidden sm:inline">{wf.save}</span>
             </Button>
-            <Button size="sm" className="gap-1.5 rounded-full" onClick={runWorkflow}>
-              <Play className="h-4 w-4" />
+            <Button size="sm" className="gap-1.5 rounded-full" onClick={runWorkflow} disabled={isRunning || nodes.length === 0}>
+              {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               {wf.run}
             </Button>
           </div>
@@ -333,32 +445,26 @@ export default function WorkflowBuilderPage() {
       </div>
 
       <div className="flex h-[calc(100vh-120px)]">
-        {/* Left Sidebar — Node Library */}
+        {/* Left Sidebar */}
         <div className="w-72 border-r border-border bg-card/40 backdrop-blur-sm overflow-y-auto shrink-0">
           <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="w-full">
             <TabsList className="w-full rounded-none border-b border-border bg-transparent h-11">
-              <TabsTrigger value="nodes" className="flex-1 text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-                {wf.nodes}
-              </TabsTrigger>
-              <TabsTrigger value="guide" className="flex-1 text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-                {wf.guide}
-              </TabsTrigger>
+              <TabsTrigger value="nodes" className="flex-1 text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">{wf.nodes}</TabsTrigger>
+              <TabsTrigger value="guide" className="flex-1 text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">{wf.guide}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="nodes" className="mt-0 p-3 space-y-4">
-              {NODE_CATEGORIES.map((cat) => (
+              {NODE_CATEGORIES.map(cat => (
                 <div key={cat.id}>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2 px-1">
-                    {cat.label}
-                  </p>
+                  <p className={`text-[10px] uppercase tracking-widest font-semibold mb-2 px-1 ${cat.color}`}>{cat.label}</p>
                   <div className="space-y-1.5">
-                    {cat.nodes.map((n) => (
+                    {cat.nodes.map(n => (
                       <motion.button
                         key={n.type}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => addNode(n.type, n.label, n.icon)}
-                        className="flex w-full items-center gap-2.5 rounded-xl border border-border/50 bg-background/60 px-3 py-2.5 text-left hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                        className={`flex w-full items-center gap-2.5 rounded-xl border bg-background/60 px-3 py-2.5 text-left hover:bg-primary/5 transition-all group ${CATEGORY_COLORS[cat.id] || "border-border/50"}`}
                       >
                         <span className="text-lg">{n.icon}</span>
                         <div className="flex-1 min-w-0">
@@ -389,7 +495,7 @@ export default function WorkflowBuilderPage() {
                 </div>
 
                 <div className="rounded-xl border border-border bg-muted/30 p-3">
-                  <h4 className="text-xs font-bold mb-1.5">{wf.platforms_info}</h4>
+                  <h4 className="text-xs font-bold mb-2">{wf.platforms_info}</h4>
                   <div className="space-y-2">
                     {[
                       { name: "Instagram", desc: wf.insta_desc, color: "from-pink-500 to-orange-400" },
@@ -399,7 +505,7 @@ export default function WorkflowBuilderPage() {
                       { name: "X", desc: wf.x_desc, color: "from-foreground/80 to-foreground" },
                       { name: "Facebook", desc: wf.fb_desc, color: "from-blue-500 to-blue-600" },
                       { name: "Threads", desc: wf.threads_desc, color: "from-foreground/80 to-foreground" },
-                    ].map((p) => (
+                    ].map(p => (
                       <div key={p.name} className="flex items-start gap-2">
                         <div className={`mt-0.5 h-4 w-4 rounded bg-gradient-to-br ${p.color} shrink-0`} />
                         <div>
@@ -425,14 +531,21 @@ export default function WorkflowBuilderPage() {
 
         {/* Canvas */}
         <div className="flex-1 relative overflow-hidden bg-[radial-gradient(circle_at_center,hsl(var(--muted)/0.3)_1px,transparent_1px)] bg-[length:24px_24px]" ref={canvasRef}>
+          {/* Connecting mode overlay */}
+          {connectingFrom && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30">
+              <Badge className="rounded-full bg-primary text-primary-foreground gap-1.5 px-4 py-1.5 shadow-lg">
+                <ArrowRight className="h-3.5 w-3.5" />
+                Клікніть на вузол для з'єднання
+                <button onClick={() => setConnectingFrom(null)} className="ml-1"><X className="h-3 w-3" /></button>
+              </Badge>
+            </div>
+          )}
+
           {/* Empty state */}
           {nodes.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center max-w-sm"
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-sm">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">
                   <Workflow className="h-8 w-8 text-primary" />
                 </div>
@@ -446,72 +559,103 @@ export default function WorkflowBuilderPage() {
             </div>
           )}
 
-          {/* Render Nodes */}
-          <AnimatePresence>
-            {nodes.map((node) => (
-              <WorkflowNodeCard
-                key={node.id}
-                node={node}
-                isSelected={selectedNode === node.id}
-                onSelect={() => setSelectedNode(node.id === selectedNode ? null : node.id)}
-                onDelete={() => deleteNode(node.id)}
-                onDragEnd={(pos) => updateNodePosition(node.id, pos)}
-              />
-            ))}
-          </AnimatePresence>
-
           {/* SVG connections */}
-          {nodes.length > 1 && (
-            <svg className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
-              <defs>
-                <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
-                </linearGradient>
-              </defs>
-              {nodes.slice(0, -1).map((n, i) => {
-                const next = nodes[i + 1];
-                if (!next) return null;
-                const x1 = n.position.x + 170;
-                const y1 = n.position.y + 28;
-                const x2 = next.position.x;
-                const y2 = next.position.y + 28;
-                const mx = (x1 + x2) / 2;
-                return (
-                  <motion.path
-                    key={`${n.id}-${next.id}`}
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.6, delay: i * 0.1 }}
-                    d={`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`}
-                    fill="none"
-                    stroke="url(#lineGrad)"
-                    strokeWidth="2"
-                    strokeDasharray="6 4"
-                  />
-                );
-              })}
-            </svg>
-          )}
+          <svg className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%", transform: `scale(${zoom})`, transformOrigin: "0 0" }}>
+            <defs>
+              <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.9" />
+              </linearGradient>
+              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--primary))" fillOpacity="0.6" />
+              </marker>
+            </defs>
+            {connections.map((conn, i) => {
+              const fromNode = nodes.find(n => n.id === conn.from);
+              const toNode = nodes.find(n => n.id === conn.to);
+              if (!fromNode || !toNode) return null;
+              const x1 = fromNode.position.x + 180;
+              const y1 = fromNode.position.y + 28;
+              const x2 = toNode.position.x;
+              const y2 = toNode.position.y + 28;
+              const mx = (x1 + x2) / 2;
+              return (
+                <motion.path
+                  key={`${conn.from}-${conn.to}`}
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.5, delay: i * 0.08 }}
+                  d={`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`}
+                  fill="none"
+                  stroke="url(#lineGrad)"
+                  strokeWidth="2"
+                  markerEnd="url(#arrowhead)"
+                />
+              );
+            })}
+          </svg>
+
+          {/* Render Nodes */}
+          <div style={{ transform: `scale(${zoom})`, transformOrigin: "0 0" }}>
+            <AnimatePresence>
+              {nodes.map(node => (
+                <WorkflowNodeCard
+                  key={node.id}
+                  node={node}
+                  isSelected={selectedNode === node.id}
+                  onSelect={() => setSelectedNode(node.id === selectedNode ? null : node.id)}
+                  onDelete={() => deleteNode(node.id)}
+                  onDragEnd={pos => updateNodePosition(node.id, pos)}
+                  onStartConnect={handleConnect}
+                  connectingFrom={connectingFrom}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
 
           {/* Bottom toolbar */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-2xl border border-border bg-card/90 backdrop-blur-md px-4 py-2 shadow-lg">
-            <Badge variant="secondary" className="text-xs rounded-full">
-              {nodes.length} {wf.nodes_count}
-            </Badge>
+            <Badge variant="secondary" className="text-xs rounded-full">{nodes.length} {wf.nodes_count}</Badge>
             <div className="h-4 w-px bg-border" />
-            <Button size="sm" variant="ghost" className="h-7 text-xs rounded-full" onClick={() => setNodes([])}>
+
+            {/* Zoom controls */}
+            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <span className="text-[10px] text-muted-foreground w-8 text-center">{Math.round(zoom * 100)}%</span>
+            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => setZoom(z => Math.min(1.5, z + 0.1))}>
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => setZoom(1)}>
+              <Maximize className="h-3.5 w-3.5" />
+            </Button>
+
+            <div className="h-4 w-px bg-border" />
+            <Button size="sm" variant="ghost" className="h-7 text-xs rounded-full" onClick={() => { setNodes([]); setConnections([]); }}>
               <Trash2 className="h-3.5 w-3.5 mr-1" />
               {wf.clear}
             </Button>
           </div>
+
+          {/* Warnings panel */}
+          {warnings.length > 0 && nodes.length > 0 && (
+            <div className="absolute top-3 right-3 max-w-xs space-y-1.5">
+              {warnings.map((w, i) => (
+                <motion.div key={i} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5">
+                  <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400">{w}</span>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar — Node Config */}
         <AnimatePresence>
           {selectedNode && (() => {
-            const node = nodes.find((n) => n.id === selectedNode);
+            const node = nodes.find(n => n.id === selectedNode);
             if (!node) return null;
+            const nodeConns = connections.filter(c => c.from === node.id || c.to === node.id);
             return (
               <motion.div
                 initial={{ x: 300, opacity: 0 }}
@@ -534,6 +678,29 @@ export default function WorkflowBuilderPage() {
                       <p className="text-[10px] text-muted-foreground">{node.type}</p>
                     </div>
                   </div>
+
+                  {/* Connections info */}
+                  {nodeConns.length > 0 && (
+                    <div className="rounded-xl border border-border/50 bg-muted/20 p-2.5">
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">З'єднання ({nodeConns.length})</p>
+                      {nodeConns.map(c => {
+                        const other = nodes.find(n => n.id === (c.from === node.id ? c.to : c.from));
+                        return other ? (
+                          <div key={`${c.from}-${c.to}`} className="flex items-center gap-1.5 py-0.5">
+                            <span className="text-xs">{c.from === node.id ? "→" : "←"}</span>
+                            <span className="text-[10px]">{other.icon}</span>
+                            <span className="text-[10px] truncate">{other.label}</span>
+                            <button
+                              onClick={() => setConnections(prev => prev.filter(cx => !(cx.from === c.from && cx.to === c.to)))}
+                              className="ml-auto text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
 
                   {/* Platform-specific config */}
                   {["instagram", "tiktok"].includes(node.type) && (
@@ -618,6 +785,12 @@ export default function WorkflowBuilderPage() {
                     <label className="text-xs font-medium">{wf.caption}</label>
                     <Textarea placeholder={wf.caption_placeholder} className="rounded-xl text-xs resize-none" rows={3} />
                   </div>
+
+                  {/* Delete node */}
+                  <Button variant="outline" size="sm" className="w-full rounded-full gap-1.5 text-destructive hover:bg-destructive/10" onClick={() => deleteNode(node.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Видалити вузол
+                  </Button>
                 </div>
               </motion.div>
             );
@@ -636,7 +809,7 @@ export default function WorkflowBuilderPage() {
             <DialogDescription>{wf.templates_desc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-96 overflow-y-auto py-2">
-            {TEMPLATES.map((tpl) => (
+            {TEMPLATES.map(tpl => (
               <motion.button
                 key={tpl.id}
                 whileHover={{ scale: 1.01 }}
@@ -648,11 +821,7 @@ export default function WorkflowBuilderPage() {
                 <div className="flex-1">
                   <p className="text-sm font-semibold">{tpl.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{tpl.description}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Badge variant="secondary" className="text-[10px] rounded-full px-2 py-0">
-                      {tpl.nodes.length} {wf.nodes_count}
-                    </Badge>
-                  </div>
+                  <Badge variant="secondary" className="text-[10px] rounded-full px-2 py-0 mt-1.5">{tpl.nodes.length} {wf.nodes_count}</Badge>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </motion.button>
@@ -661,19 +830,17 @@ export default function WorkflowBuilderPage() {
             {savedTemplates.length > 0 && (
               <>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 pt-2">{wf.my_templates}</p>
-                {savedTemplates.map((tpl) => (
+                {savedTemplates.map(tpl => (
                   <motion.button
                     key={tpl.id}
                     whileHover={{ scale: 1.01 }}
-                    onClick={() => { setNodes(tpl.nodes); setWorkflowName(tpl.name); setTemplateDialog(false); }}
+                    onClick={() => { setNodes(tpl.nodes); setConnections(tpl.connections); setWorkflowName(tpl.name); setTemplateDialog(false); }}
                     className="flex w-full items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-left hover:bg-primary/10 transition-all"
                   >
                     <span className="text-2xl">💾</span>
                     <div className="flex-1">
                       <p className="text-sm font-semibold">{tpl.name}</p>
-                      <Badge variant="secondary" className="text-[10px] rounded-full px-2 py-0 mt-1">
-                        {tpl.nodes.length} {wf.nodes_count}
-                      </Badge>
+                      <Badge variant="secondary" className="text-[10px] rounded-full px-2 py-0 mt-1">{tpl.nodes.length} {wf.nodes_count}</Badge>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </motion.button>
@@ -691,17 +858,10 @@ export default function WorkflowBuilderPage() {
             <DialogTitle>{wf.save_template}</DialogTitle>
             <DialogDescription>{wf.save_template_desc}</DialogDescription>
           </DialogHeader>
-          <Input
-            value={workflowName}
-            onChange={(e) => setWorkflowName(e.target.value)}
-            placeholder={wf.workflow_name}
-            className="rounded-xl"
-          />
+          <Input value={workflowName} onChange={(e) => setWorkflowName(e.target.value)} placeholder={wf.workflow_name} className="rounded-xl" />
           <DialogFooter>
             <Button variant="outline" className="rounded-full" onClick={() => setSaveDialog(false)}>{wf.cancel}</Button>
-            <Button className="rounded-full gap-1.5" onClick={saveAsTemplate}>
-              <Save className="h-4 w-4" />{wf.save}
-            </Button>
+            <Button className="rounded-full gap-1.5" onClick={saveAsTemplate}><Save className="h-4 w-4" />{wf.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

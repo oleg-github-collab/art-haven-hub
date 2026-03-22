@@ -568,6 +568,7 @@ export interface Translations {
     accounts_tab: string;
     campaigns_tab: string;
     calendar_tab: string;
+    autopost_tab: string;
     connected: string;
     not_connected: string;
     followers: string;
@@ -586,5 +587,38 @@ export interface Translations {
     calendar_title: string;
     calendar_desc: string;
     schedule_post: string;
+    // Calendar extra
+    new_post: string;
+    today: string;
+    mon: string; tue: string; wed: string; thu: string; fri: string; sat: string; sun: string;
+    published: string;
+    failed: string;
+    no_posts: string;
+    add_post: string;
+    platform: string;
+    time: string;
+    caption: string;
+    save: string;
+    cancel: string;
+    delete_post: string;
+    duplicate: string;
+    view: string;
+    week: string;
+    month: string;
+    post_saved: string;
+    post_deleted: string;
+    // Autopost
+    autopost_title: string;
+    autopost_desc: string;
+    queue_empty: string;
+    processing: string;
+    paused: string;
+    retry: string;
+    pause: string;
+    resume: string;
+    remove: string;
+    clear_completed: string;
+    total_in_queue: string;
+    next_post: string;
   };
 }
