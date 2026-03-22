@@ -10,7 +10,10 @@ export interface User {
   bio?: string;
   country?: string;
   city?: string;
+  location?: string;
   roles?: string[];
+  tags?: string[];
+  is_verified?: boolean;
   follower_count: number;
   following_count: number;
   artwork_count: number;
