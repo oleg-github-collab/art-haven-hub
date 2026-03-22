@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Instagram, Facebook, Twitter, ShoppingBag, Video, FileText,
-  Globe, Package, Link2, Unlink, CheckCircle2, AlertCircle,
-  ArrowRight, BarChart3, Eye, Heart, TrendingUp, Plus,
-  Settings2, RefreshCw, Zap, Calendar, Clock, Send,
-  Workflow, ChevronRight, ExternalLink,
+  Globe, Package, Link2, Unlink, CheckCircle2,
+  Eye, Heart, TrendingUp, Plus,
+  Zap, Calendar, Send, Clock,
+  Workflow, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,30 +14,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/context";
 import { Link } from "react-router-dom";
+import ContentCalendar from "@/components/dashboard/ContentCalendar";
+import AutoPostQueue from "@/components/dashboard/AutoPostQueue";
 
 /* ─── Platform Definitions ─── */
 interface SocialAccount {
   id: string;
   platform: string;
-  name: string;
-  handle: string;
   icon: React.ElementType;
   color: string;
   connected: boolean;
+  handle: string;
   followers?: number;
-  lastPost?: string;
   autoPost: boolean;
 }
 
 const DEFAULT_ACCOUNTS: SocialAccount[] = [
-  { id: "ig", platform: "Instagram", name: "", handle: "", icon: Instagram, color: "bg-gradient-to-br from-pink-500 to-orange-400", connected: false, autoPost: false },
-  { id: "pin", platform: "Pinterest", name: "", handle: "", icon: Globe, color: "bg-red-600", connected: false, autoPost: false },
-  { id: "etsy", platform: "Etsy", name: "", handle: "", icon: ShoppingBag, color: "bg-orange-500", connected: false, autoPost: false },
-  { id: "tt", platform: "TikTok", name: "", handle: "", icon: Video, color: "bg-foreground", connected: false, autoPost: false },
-  { id: "x", platform: "X (Twitter)", name: "", handle: "", icon: Twitter, color: "bg-foreground", connected: false, autoPost: false },
-  { id: "fb", platform: "Facebook", name: "", handle: "", icon: Facebook, color: "bg-blue-600", connected: false, autoPost: false },
-  { id: "threads", platform: "Threads", name: "", handle: "", icon: FileText, color: "bg-foreground", connected: false, autoPost: false },
-  { id: "pf", platform: "Printful", name: "", handle: "", icon: Package, color: "bg-green-600", connected: false, autoPost: false },
+  { id: "ig", platform: "Instagram", icon: Instagram, color: "bg-gradient-to-br from-pink-500 to-orange-400", connected: false, handle: "", autoPost: false },
+  { id: "pin", platform: "Pinterest", icon: Globe, color: "bg-red-600", connected: false, handle: "", autoPost: false },
+  { id: "etsy", platform: "Etsy", icon: ShoppingBag, color: "bg-orange-500", connected: false, handle: "", autoPost: false },
+  { id: "tt", platform: "TikTok", icon: Video, color: "bg-foreground", connected: false, handle: "", autoPost: false },
+  { id: "x", platform: "X (Twitter)", icon: Twitter, color: "bg-foreground", connected: false, handle: "", autoPost: false },
+  { id: "fb", platform: "Facebook", icon: Facebook, color: "bg-blue-600", connected: false, handle: "", autoPost: false },
+  { id: "threads", platform: "Threads", icon: FileText, color: "bg-foreground", connected: false, handle: "", autoPost: false },
+  { id: "pf", platform: "Printful", icon: Package, color: "bg-green-600", connected: false, handle: "", autoPost: false },
 ];
 
 interface CampaignSummary {
@@ -72,7 +72,6 @@ export default function SocialHubPage() {
           ? {
               ...a,
               connected: !a.connected,
-              name: a.connected ? "" : "My " + a.platform,
               handle: a.connected ? "" : "@myart_" + a.id,
               followers: a.connected ? undefined : Math.floor(Math.random() * 5000) + 200,
             }
@@ -88,6 +87,52 @@ export default function SocialHubPage() {
     scheduled: { label: sh.status_scheduled, color: "bg-blue-500" },
     active: { label: sh.status_active, color: "bg-green-500" },
     completed: { label: sh.status_completed, color: "bg-primary" },
+  };
+
+  const calendarLabels = {
+    title: sh.calendar_title,
+    new_post: sh.new_post || "Новий пост",
+    today: sh.today || "Сьогодні",
+    mon: sh.mon || "Пн", tue: sh.tue || "Вт", wed: sh.wed || "Ср",
+    thu: sh.thu || "Чт", fri: sh.fri || "Пт", sat: sh.sat || "Сб", sun: sh.sun || "Нд",
+    draft: sh.status_draft, scheduled: sh.status_scheduled,
+    published: sh.published || "Опубліковано",
+    failed: sh.failed || "Помилка",
+    no_posts: sh.no_posts || "Немає постів на цей день",
+    add_post: sh.add_post || "Додати пост",
+    platform: sh.platform || "Платформа",
+    time: sh.time || "Час",
+    caption: sh.caption || "Опис",
+    save: sh.save || "Зберегти",
+    cancel: sh.cancel || "Скасувати",
+    delete_post: sh.delete_post || "Видалити",
+    duplicate: sh.duplicate || "Дублювати",
+    edit: sh.edit,
+    post_saved: sh.post_saved || "Пост збережено",
+    post_deleted: sh.post_deleted || "Пост видалено",
+    view: sh.view || "Переглянути",
+    week: sh.week || "Тиждень",
+    month: sh.month || "Місяць",
+  };
+
+  const autoPostLabels = {
+    title: sh.autopost_title || "Черга автопостингу",
+    desc: sh.autopost_desc || "Автоматична публікація за розкладом",
+    auto_enabled: sh.auto_post,
+    queue_empty: sh.queue_empty || "Черга порожня",
+    pending: sh.status_scheduled,
+    processing: sh.processing || "Обробка...",
+    published: sh.published || "Опубліковано",
+    failed: sh.failed || "Помилка",
+    paused: sh.paused || "Пауза",
+    retry: sh.retry || "Повторити",
+    pause: sh.pause || "Пауза",
+    resume: sh.resume || "Відновити",
+    remove: sh.remove || "Видалити",
+    view_post: sh.view || "Переглянути",
+    clear_completed: sh.clear_completed || "Очистити завершені",
+    total_in_queue: sh.total_in_queue || "в черзі",
+    next_post: sh.next_post || "Наступний",
   };
 
   return (
@@ -114,7 +159,6 @@ export default function SocialHubPage() {
             </Link>
           </div>
 
-          {/* Quick stats */}
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatMini label={sh.connected_accounts} value={connectedCount} icon={Link2} />
             <StatMini label={sh.active_campaigns} value={MOCK_CAMPAIGNS.filter((c) => c.status === "active").length} icon={TrendingUp} />
@@ -138,6 +182,10 @@ export default function SocialHubPage() {
             <TabsTrigger value="calendar" className="gap-1.5 rounded-full px-4 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Calendar className="h-3.5 w-3.5" />
               {sh.calendar_tab}
+            </TabsTrigger>
+            <TabsTrigger value="autopost" className="gap-1.5 rounded-full px-4 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Zap className="h-3.5 w-3.5" />
+              {sh.autopost_tab || "Автопост"}
             </TabsTrigger>
           </TabsList>
 
@@ -286,19 +334,12 @@ export default function SocialHubPage() {
 
           {/* Calendar Tab */}
           <TabsContent value="calendar" className="mt-0">
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">
-                <Calendar className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-serif text-lg font-bold mb-2">{sh.calendar_title}</h3>
-              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">{sh.calendar_desc}</p>
-              <Link to="/workflow-builder">
-                <Button className="rounded-full gap-1.5">
-                  <Plus className="h-4 w-4" />
-                  {sh.schedule_post}
-                </Button>
-              </Link>
-            </div>
+            <ContentCalendar labels={calendarLabels} />
+          </TabsContent>
+
+          {/* Auto-post Tab */}
+          <TabsContent value="autopost" className="mt-0">
+            <AutoPostQueue labels={autoPostLabels} />
           </TabsContent>
         </Tabs>
       </div>
