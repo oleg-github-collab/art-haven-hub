@@ -25,7 +25,7 @@ const fr: Translations = {
     community: "Communauté",
     legal: "Mentions légales",
     languages: "Langues",
-    rights: "© 2026 Mystetstvo. Tous droits réservés.",
+    rights: "© 2026 Inner Garden. Tous droits réservés.",
     made_with: "Créé avec",
     board: "Tableau d'annonces",
     market: "Marché",
@@ -67,6 +67,7 @@ const fr: Translations = {
     hero_title_highlight: "créativité",
     hero_title_2: " sans frontières",
     hero_desc: "Networking, marketplace, événements et communauté pour artistes, curateurs, galeristes et tous ceux liés aux industries créatives.",
+    hero_scroll: "Défiler",
     hero_cta_board: "Tableau d'annonces",
     hero_cta_artists: "Voir les artistes",
     hero_img_alt: "Art",
@@ -206,8 +207,8 @@ const fr: Translations = {
     limits_start: ["Pas d'annonces top", "Pas d'analytique", "Commission sur les ventes"],
   },
   about: {
-    title: "À propos de la plateforme Mystetstvo",
-    desc: "Mystetstvo est une plateforme en ligne ukrainienne créée pour unir artistes, collectionneurs et amateurs d'art du monde entier. Nous croyons que chacun mérite l'accès à l'art et que chaque artiste mérite une rémunération équitable pour son travail.",
+    title: "À propos d'Inner Garden",
+    desc: "Inner Garden est une plateforme en ligne créée pour unir artistes, collectionneurs et amateurs d'art du monde entier. Nous croyons que chacun mérite l'accès à l'art et que chaque artiste mérite une rémunération équitable pour son travail.",
     mission_title: "Notre mission",
     mission_desc: "Rendre l'art ukrainien visible dans le monde et fournir aux artistes des outils modernes pour le développement de leur carrière créative.",
     value_art: "L'art avant tout",
@@ -256,8 +257,8 @@ const fr: Translations = {
     terms_policies: "Conditions et politiques",
   },
   common: {
-    platform_name: "Mystetstvo",
-    platform_subtitle: "Ukrainian Art Platform",
+    platform_name: "Inner Garden",
+    platform_subtitle: "Creative Art Platform",
   },
   cart: {
     title: "Panier",

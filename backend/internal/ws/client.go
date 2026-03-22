@@ -18,10 +18,16 @@ const (
 )
 
 type Client struct {
-	UserID uuid.UUID
-	conn   *websocket.Conn
-	hub    *Hub
-	send   chan []byte
+	UserID    uuid.UUID
+	conn      *websocket.Conn
+	hub       *Hub
+	send      chan []byte
+	onMessage func(ctx context.Context, client *Client, msg WSMessage)
+}
+
+// SetOnMessage sets a callback for message types not handled by the default switch.
+func (c *Client) SetOnMessage(fn func(ctx context.Context, client *Client, msg WSMessage)) {
+	c.onMessage = fn
 }
 
 func NewClient(userID uuid.UUID, conn *websocket.Conn, hub *Hub) *Client {
@@ -138,6 +144,10 @@ func (c *Client) handleMessage(ctx context.Context, msg WSMessage) {
 		}
 
 	default:
-		slog.Debug("ws unknown message type", "type", msg.Type, "user_id", c.UserID)
+		if c.onMessage != nil {
+			c.onMessage(ctx, c, msg)
+		} else {
+			slog.Debug("ws unknown message type", "type", msg.Type, "user_id", c.UserID)
+		}
 	}
 }

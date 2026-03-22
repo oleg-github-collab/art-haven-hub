@@ -25,7 +25,7 @@ const es: Translations = {
     community: "Comunidad",
     legal: "Legal",
     languages: "Idiomas",
-    rights: "© 2026 Mystetstvo. Todos los derechos reservados.",
+    rights: "© 2026 Inner Garden. Todos los derechos reservados.",
     made_with: "Creado con",
     board: "Tablón de anuncios",
     market: "Mercado",
@@ -67,6 +67,7 @@ const es: Translations = {
     hero_title_highlight: "creatividad",
     hero_title_2: " sin fronteras",
     hero_desc: "Networking, marketplace, eventos y comunidad para artistas, curadores, galeristas y todos los vinculados a las industrias creativas.",
+    hero_scroll: "Desliza",
     hero_cta_board: "Tablón de anuncios",
     hero_cta_artists: "Ver artistas",
     hero_img_alt: "Arte",
@@ -206,8 +207,8 @@ const es: Translations = {
     limits_start: ["Sin anuncios top", "Sin analítica", "Comisión por ventas"],
   },
   about: {
-    title: "Sobre la plataforma Mystetstvo",
-    desc: "Mystetstvo es una plataforma online ucraniana creada para unir artistas, coleccionistas y amantes del arte de todo el mundo. Creemos que todos merecen acceso al arte y cada artista merece una compensación justa por su trabajo.",
+    title: "Sobre Inner Garden",
+    desc: "Inner Garden es una plataforma online creada para unir artistas, coleccionistas y amantes del arte de todo el mundo. Creemos que todos merecen acceso al arte y cada artista merece una compensación justa por su trabajo.",
     mission_title: "Nuestra misión",
     mission_desc: "Hacer visible el arte ucraniano en el mundo y proporcionar a los artistas herramientas modernas para el desarrollo de sus carreras creativas.",
     value_art: "El arte ante todo",
@@ -256,8 +257,8 @@ const es: Translations = {
     terms_policies: "Términos y políticas",
   },
   common: {
-    platform_name: "Mystetstvo",
-    platform_subtitle: "Ukrainian Art Platform",
+    platform_name: "Inner Garden",
+    platform_subtitle: "Creative Art Platform",
   },
   cart: {
     title: "Carrito",

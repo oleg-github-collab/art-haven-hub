@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Heart, Palette, Instagram, Facebook, Youtube, Send } from "lucide-react";
+import { Heart, Instagram, Facebook, Youtube, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n";
 
@@ -64,11 +64,9 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary">
-                <Palette className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-bold font-serif">{t.common.platform_name}</span>
+            <Link to="/" className="flex items-center gap-1.5 mb-3">
+              <span className="text-lg font-bold font-serif text-primary">Inner</span>
+              <span className="text-lg font-bold font-serif">Garden</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               {t.common.platform_subtitle}

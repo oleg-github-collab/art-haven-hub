@@ -25,7 +25,7 @@ const de: Translations = {
     community: "Gemeinschaft",
     legal: "Rechtliches",
     languages: "Sprachen",
-    rights: "© 2026 Mystetstvo. Alle Rechte vorbehalten.",
+    rights: "© 2026 Inner Garden. Alle Rechte vorbehalten.",
     made_with: "Erstellt mit",
     board: "Pinnwand",
     market: "Markt",
@@ -67,6 +67,7 @@ const de: Translations = {
     hero_title_highlight: "Kreativität",
     hero_title_2: " ohne Grenzen",
     hero_desc: "Networking, Marktplatz, Events und Community für Künstler, Kuratoren, Galeristen und alle, die mit der Kreativwirtschaft verbunden sind.",
+    hero_scroll: "Scrollen",
     hero_cta_board: "Pinnwand",
     hero_cta_artists: "Künstler durchsuchen",
     hero_img_alt: "Kunst",
@@ -206,8 +207,8 @@ const de: Translations = {
     limits_start: ["Keine Top-Anzeigen", "Keine Analytik", "Verkaufsprovision"],
   },
   about: {
-    title: "Über die Plattform Mystetstvo",
-    desc: "Mystetstvo ist eine ukrainische Online-Plattform, die geschaffen wurde, um Künstler, Sammler und Kunstliebhaber aus der ganzen Welt zu vereinen. Wir glauben, dass jeder Zugang zu Kunst verdient und jeder Künstler eine faire Vergütung für seine Arbeit verdient.",
+    title: "Über Inner Garden",
+    desc: "Inner Garden ist eine Online-Plattform, die geschaffen wurde, um Künstler, Sammler und Kunstliebhaber aus der ganzen Welt zu vereinen. Wir glauben, dass jeder Zugang zu Kunst verdient und jeder Künstler eine faire Vergütung für seine Arbeit verdient.",
     mission_title: "Unsere Mission",
     mission_desc: "Ukrainische Kunst weltweit sichtbar machen und Künstlern moderne Werkzeuge für die Entwicklung ihrer kreativen Karriere bieten.",
     value_art: "Kunst über alles",
@@ -256,8 +257,8 @@ const de: Translations = {
     terms_policies: "AGB & Richtlinien",
   },
   common: {
-    platform_name: "Mystetstvo",
-    platform_subtitle: "Ukrainian Art Platform",
+    platform_name: "Inner Garden",
+    platform_subtitle: "Creative Art Platform",
   },
   cart: {
     title: "Warenkorb",

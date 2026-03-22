@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS calls;
+DROP TYPE IF EXISTS call_status;
+DROP TYPE IF EXISTS call_type;

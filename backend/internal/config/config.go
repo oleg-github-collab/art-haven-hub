@@ -52,6 +52,13 @@ type Config struct {
 	// OpenAI (embeddings + translations)
 	OpenAIKey string `env:"OPENAI_API_KEY"`
 
+	// WebRTC / STUN / TURN
+	STUNServers  []string      `env:"STUN_SERVERS" envSeparator:"," envDefault:"stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302"`
+	TURNServers  []string      `env:"TURN_SERVERS" envSeparator:","`
+	TURNUsername string        `env:"TURN_USERNAME"`
+	TURNPassword string        `env:"TURN_PASSWORD"`
+	CallTimeout  time.Duration `env:"CALL_TIMEOUT" envDefault:"60s"`
+
 	// Rate Limiting
 	RateLimitRPS   float64 `env:"RATE_LIMIT_RPS" envDefault:"100"`
 	RateLimitBurst int     `env:"RATE_LIMIT_BURST" envDefault:"200"`

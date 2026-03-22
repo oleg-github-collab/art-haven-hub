@@ -136,4 +136,22 @@
   .card-shadow-hover {
     box-shadow: var(--card-shadow-hover);
   }
+  .hero-text-shadow {
+    text-shadow: 0 2px 16px hsl(0 0% 0% / 0.25), 0 1px 4px hsl(0 0% 0% / 0.15);
+  }
+}
+
+/* Hide Unicorn Studio watermark */
+[data-us-project] a[href*="unicorn"],
+[data-us-project] a[href*="UnicornStudio"],
+[data-us-project] > div > a,
+[data-us-project] [class*="watermark"],
+[data-us-project] [class*="badge"],
+[data-us-project] [class*="credit"],
+[data-us-project] [style*="z-index"][style*="bottom"] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }

@@ -2,11 +2,12 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Send, Paperclip, Smile, MoreVertical, Phone, Video,
-  Pin, Users, ArrowLeft, Plus, Mic,
+  Pin, Users, ArrowLeft, Plus, Mic, MicOff, VideoOff,
   Check, CheckCheck, Settings,
   X, MessageCircle, Radio, Lock,
-  Reply, Forward, Copy, Trash2, Heart, ThumbsUp, Laugh, Flame,
-  Image as ImageIcon, Gift, PhoneOff, Monitor, ExternalLink,
+  Reply, Forward, Copy,
+  PhoneOff, Monitor, ExternalLink,
+  Image as ImageIcon, Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +20,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useConversations, useMessages, useSendMessage, useMarkRead, type Conversation, type Message } from "@/hooks/useMessenger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n";
+import { useWebSocket, type WSMessage } from "@/hooks/useWebSocket";
+import { useWebRTC, type CallState, type CallInfo, type CoBrowseEvent } from "@/hooks/useWebRTC";
+import { useICEServers } from "@/hooks/useICEServers";
 
 type Tab = "all" | "private" | "group" | "channel";
 
-// Emoji reactions
 const REACTIONS = [
   { emoji: "❤️", label: "heart" },
   { emoji: "👍", label: "thumbsup" },
@@ -32,7 +35,6 @@ const REACTIONS = [
   { emoji: "😢", label: "sad" },
 ];
 
-// Sample GIF categories for the picker
 const GIF_CATEGORIES = ["Trending", "Happy", "Sad", "Love", "Funny", "Art", "Dance"];
 const SAMPLE_GIFS = [
   "https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif",
@@ -44,6 +46,12 @@ const SAMPLE_GIFS = [
   "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
   "https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif",
 ];
+
+const CALL_TYPES = new Set([
+  "call_incoming", "call_accepted", "call_rejected", "call_ended",
+  "webrtc_offer", "webrtc_answer", "ice_candidate",
+  "cobrowse_start", "cobrowse_navigate", "cobrowse_stop",
+]);
 
 export default function MessengerPage() {
   const { t } = useLanguage();
@@ -57,13 +65,54 @@ export default function MessengerPage() {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [gifSearch, setGifSearch] = useState("");
-  const [callModal, setCallModal] = useState<"audio" | "video" | null>(null);
   const [forwardMsg, setForwardMsg] = useState<Message | null>(null);
   const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({});
-  const [coBrowseActive, setCoBrowseActive] = useState(false);
+  const [coBrowseState, setCoBrowseState] = useState<{
+    active: boolean;
+    url?: string;
+    artworkId?: string;
+    title?: string;
+  }>({ active: false });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sendMessage = useSendMessage();
   const markRead = useMarkRead();
+  const { data: iceServers } = useICEServers();
+
+  const webrtcHandlerRef = useRef<((msg: WSMessage) => void) | null>(null);
+
+  const handleWSMessage = useCallback((msg: WSMessage) => {
+    if (CALL_TYPES.has(msg.type)) {
+      webrtcHandlerRef.current?.(msg);
+    }
+  }, []);
+
+  const { send: wsSend } = useWebSocket(handleWSMessage);
+
+  const handleCoBrowseEvent = useCallback((event: CoBrowseEvent) => {
+    if (event.type === "cobrowse_start") {
+      setCoBrowseState({ active: true });
+    } else if (event.type === "cobrowse_navigate") {
+      setCoBrowseState({ active: true, url: event.url, artworkId: event.artworkId, title: event.title });
+    } else if (event.type === "cobrowse_stop") {
+      setCoBrowseState({ active: false });
+    }
+  }, []);
+
+  const {
+    callState, callInfo, localStream, remoteStream,
+    isMicMuted, isCameraOff, isScreenSharing, callDuration,
+    initiateCall, acceptCall, rejectCall, endCall,
+    toggleMic, toggleCamera, startScreenShare, stopScreenShare,
+    startCoBrowse, stopCoBrowse,
+    handleSignalingMessage,
+  } = useWebRTC(wsSend, {
+    iceServers: iceServers || undefined,
+    onCoBrowseEvent: handleCoBrowseEvent,
+  });
+
+  useEffect(() => {
+    webrtcHandlerRef.current = handleSignalingMessage;
+  }, [handleSignalingMessage]);
 
   const tabs: { value: Tab; label: string; icon: React.ElementType }[] = [
     { value: "all", label: t.messenger.all, icon: MessageCircle },
@@ -127,6 +176,14 @@ export default function MessengerPage() {
 
   const getAvatar = (conv: Conversation) => {
     return (conv.name || "?").split(" ").map(w => w[0]).join("").slice(0, 2);
+  };
+
+  const handleStartCall = (type: "audio" | "video") => {
+    if (!activeConv || activeConv.type !== "private") return;
+    const callee = activeConv.members?.find((m) => m.user_id !== user?.id);
+    if (callee) {
+      initiateCall(callee.user_id, activeConv.id, type);
+    }
   };
 
   return (
@@ -198,25 +255,33 @@ export default function MessengerPage() {
                 </span>
               </div>
               <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="hidden h-8 w-8 sm:flex" onClick={() => setCallModal("audio")}>
-                  <Phone className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="hidden h-8 w-8 sm:flex" onClick={() => setCallModal("video")}>
-                  <Video className="h-4 w-4" />
-                </Button>
+                {activeConv.type === "private" && (
+                  <>
+                    <Button variant="ghost" size="icon" className="hidden h-8 w-8 sm:flex" onClick={() => handleStartCall("audio")}>
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="hidden h-8 w-8 sm:flex" onClick={() => handleStartCall("video")}>
+                      <Video className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
                 <Button variant="ghost" size="icon" className="h-8 w-8"><Search className="h-4 w-4" /></Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem className="sm:hidden" onClick={() => setCallModal("audio")}>
-                      <Phone className="mr-2 h-4 w-4" /> Аудіодзвінок
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="sm:hidden" onClick={() => setCallModal("video")}>
-                      <Video className="mr-2 h-4 w-4" /> Відеодзвінок
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="sm:hidden" />
+                    {activeConv.type === "private" && (
+                      <>
+                        <DropdownMenuItem className="sm:hidden" onClick={() => handleStartCall("audio")}>
+                          <Phone className="mr-2 h-4 w-4" /> Аудіодзвінок
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="sm:hidden" onClick={() => handleStartCall("video")}>
+                          <Video className="mr-2 h-4 w-4" /> Відеодзвінок
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="sm:hidden" />
+                      </>
+                    )}
                     <DropdownMenuItem><Pin className="mr-2 h-4 w-4" /> Закріпити</DropdownMenuItem>
                     <DropdownMenuItem><Users className="mr-2 h-4 w-4" /> Учасники</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -226,7 +291,7 @@ export default function MessengerPage() {
 
             {/* Co-browse banner */}
             <AnimatePresence>
-              {coBrowseActive && (
+              {coBrowseState.active && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
@@ -236,10 +301,16 @@ export default function MessengerPage() {
                   <div className="flex items-center justify-between px-4 py-2">
                     <div className="flex items-center gap-2 text-sm">
                       <Monitor className="h-4 w-4 text-primary" />
-                      <span className="font-medium">Спільний перегляд галереї</span>
-                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="font-medium">
+                        {coBrowseState.title ? `Перегляд: ${coBrowseState.title}` : "Спільний перегляд галереї"}
+                      </span>
+                      {coBrowseState.url && (
+                        <a href={coBrowseState.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                        </a>
+                      )}
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setCoBrowseActive(false)}>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setCoBrowseState({ active: false }); stopCoBrowse(); }}>
                       <X className="mr-1 h-3 w-3" /> Завершити
                     </Button>
                   </div>
@@ -350,7 +421,25 @@ export default function MessengerPage() {
       </div>
 
       {/* Call Modal */}
-      <CallModal type={callModal} conv={activeConv} onClose={() => setCallModal(null)} onCoBrowse={() => { setCoBrowseActive(true); setCallModal(null); }} />
+      <CallModal
+        callState={callState}
+        callInfo={callInfo}
+        localStream={localStream}
+        remoteStream={remoteStream}
+        isMicMuted={isMicMuted}
+        isCameraOff={isCameraOff}
+        isScreenSharing={isScreenSharing}
+        callDuration={callDuration}
+        onEndCall={endCall}
+        onToggleMic={toggleMic}
+        onToggleCamera={toggleCamera}
+        onStartScreenShare={startScreenShare}
+        onStopScreenShare={stopScreenShare}
+        onStartCoBrowse={() => { startCoBrowse(); setCoBrowseState({ active: true }); }}
+      />
+
+      {/* Incoming Call Overlay */}
+      <IncomingCallOverlay callState={callState} callInfo={callInfo} onAccept={acceptCall} onReject={rejectCall} />
 
       {/* Forward Modal */}
       <ForwardModal msg={forwardMsg} conversations={conversations || []} onClose={() => setForwardMsg(null)} />
@@ -393,7 +482,7 @@ function ChatListItem({ conv, avatar, active, onClick }: { conv: Conversation; a
   );
 }
 
-/* ─── Message Bubble with reactions, reply, forward ─── */
+/* ─── Message Bubble ─── */
 function MessageBubble({ msg, isMe, chatType, reactions, onReaction, onReply, onForward }: {
   msg: Message; isMe: boolean; chatType: string; reactions: string[];
   onReaction: (emoji: string) => void; onReply: () => void; onForward: () => void;
@@ -401,12 +490,9 @@ function MessageBubble({ msg, isMe, chatType, reactions, onReaction, onReply, on
   const [showActions, setShowActions] = useState(false);
   const time = new Date(msg.created_at).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
 
-  // Check if content is a quoted reply
   const isReply = msg.content.startsWith("> ");
   const quotedText = isReply ? msg.content.split("\n\n")[0]?.replace(/^> /, "") : null;
   const actualContent = isReply ? msg.content.split("\n\n").slice(1).join("\n\n") : msg.content;
-
-  // Check if it's a GIF/image
   const isImage = msg.message_type === "image" || /\.(gif|png|jpg|jpeg|webp)$/i.test(msg.content) || msg.content.includes("giphy.com");
 
   return (
@@ -415,7 +501,6 @@ function MessageBubble({ msg, isMe, chatType, reactions, onReaction, onReply, on
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Quick action bar */}
       <AnimatePresence>
         {showActions && (
           <motion.div
@@ -439,7 +524,6 @@ function MessageBubble({ msg, isMe, chatType, reactions, onReaction, onReply, on
           <p className={`mb-0.5 text-[11px] font-semibold ${isImage ? "text-foreground" : "text-primary"}`}>{msg.sender.display_name}</p>
         )}
 
-        {/* Quoted reply */}
         {quotedText && (
           <div className={`mb-1.5 rounded-lg border-l-2 px-2 py-1 text-[11px] ${isMe ? "border-primary-foreground/40 bg-primary-foreground/10" : "border-primary bg-primary/5"}`}>
             {quotedText}
@@ -464,7 +548,6 @@ function MessageBubble({ msg, isMe, chatType, reactions, onReaction, onReply, on
           </>
         )}
 
-        {/* Reactions display */}
         {reactions.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
             {reactions.map((emoji, i) => (
@@ -531,72 +614,146 @@ function EmojiPicker({ onSelect }: { onSelect: (emoji: string) => void }) {
   );
 }
 
-/* ─── Call Modal with co-browse ─── */
-function CallModal({ type, conv, onClose, onCoBrowse }: { type: "audio" | "video" | null; conv: Conversation | null; onClose: () => void; onCoBrowse: () => void }) {
-  const [callState, setCallState] = useState<"ringing" | "connected">("ringing");
+/* ─── Call Modal — Real WebRTC ─── */
+function CallModal({
+  callState, callInfo, localStream, remoteStream,
+  isMicMuted, isCameraOff, isScreenSharing, callDuration,
+  onEndCall, onToggleMic, onToggleCamera,
+  onStartScreenShare, onStopScreenShare, onStartCoBrowse,
+}: {
+  callState: CallState; callInfo: CallInfo | null;
+  localStream: MediaStream | null; remoteStream: MediaStream | null;
+  isMicMuted: boolean; isCameraOff: boolean; isScreenSharing: boolean; callDuration: number;
+  onEndCall: () => void; onToggleMic: () => void; onToggleCamera: () => void;
+  onStartScreenShare: () => void; onStopScreenShare: () => void; onStartCoBrowse: () => void;
+}) {
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (type) {
-      setCallState("ringing");
-      const timer = setTimeout(() => setCallState("connected"), 2000);
-      return () => clearTimeout(timer);
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
     }
-  }, [type]);
+  }, [localStream]);
 
-  if (!type || !conv) return null;
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  const showModal = callInfo?.direction === "outgoing"
+    ? (callState === "initiating" || callState === "connecting" || callState === "connected" || callState === "ended")
+    : (callState === "connecting" || callState === "connected" || callState === "ended");
+
+  if (!showModal || !callInfo) return null;
+
+  const isVideo = callInfo.callType === "video";
+  const mins = Math.floor(callDuration / 60).toString().padStart(2, "0");
+  const secs = (callDuration % 60).toString().padStart(2, "0");
 
   return (
-    <Dialog open={!!type} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
-        <div className={`flex flex-col items-center ${type === "video" ? "bg-foreground/95 text-background" : "bg-gradient-to-b from-primary/20 to-background"} p-8`}>
-          <motion.div
-            animate={callState === "ringing" ? { scale: [1, 1.1, 1] } : {}}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            <Avatar className="h-20 w-20 mb-4">
-              <AvatarFallback className="bg-primary/20 text-primary text-xl font-bold">
-                {(conv.name || "?").slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-          </motion.div>
-          <h3 className="text-lg font-semibold mb-1">{conv.name || "Chat"}</h3>
-          <p className={`text-sm mb-8 ${type === "video" ? "text-background/60" : "text-muted-foreground"}`}>
-            {callState === "ringing" ? (type === "video" ? "Відеодзвінок..." : "Дзвінок...") : "Підключено • 00:12"}
-          </p>
-
-          {/* Co-browse button (only in connected state) */}
-          {callState === "connected" && (
+    <Dialog open={showModal} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-lg p-0 overflow-hidden [&>button]:hidden">
+        {isVideo && callState === "connected" ? (
+          <div className="relative aspect-video bg-black">
+            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
+            <video ref={localVideoRef} autoPlay playsInline muted
+              className="absolute bottom-4 right-4 h-32 w-24 rounded-lg object-cover border-2 border-white/20 shadow-lg" />
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white backdrop-blur-sm">
+              {mins}:{secs}
+            </div>
+          </div>
+        ) : (
+          <div className={`flex flex-col items-center ${isVideo ? "bg-foreground/95 text-background" : "bg-gradient-to-b from-primary/20 to-background"} p-8`}>
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
+              animate={callState === "initiating" || callState === "connecting" ? { scale: [1, 1.1, 1] } : {}}
+              transition={{ duration: 1.5, repeat: Infinity }}
             >
-              <Button variant="outline" size="sm" onClick={onCoBrowse} className={type === "video" ? "border-background/20 text-background hover:bg-background/10" : ""}>
-                <Monitor className="mr-2 h-4 w-4" />
-                Спільний перегляд галереї
-              </Button>
+              <Avatar className="h-20 w-20 mb-4">
+                <AvatarFallback className="bg-primary/20 text-primary text-xl font-bold">
+                  {(callInfo.remoteUserName || "?").slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
             </motion.div>
-          )}
+            <h3 className="text-lg font-semibold mb-1">{callInfo.remoteUserName || "User"}</h3>
+            <p className={`text-sm mb-8 ${isVideo ? "text-background/60" : "text-muted-foreground"}`}>
+              {callState === "initiating" && "Дзвінок..."}
+              {callState === "connecting" && "Підключення..."}
+              {callState === "connected" && `${mins}:${secs}`}
+              {callState === "ended" && "Завершено"}
+            </p>
+          </div>
+        )}
 
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-accent/50 hover:bg-accent">
-              <Mic className="h-5 w-5" />
+        {callState !== "ended" && (
+          <div className="flex items-center justify-center gap-4 py-4 bg-background">
+            <Button variant="ghost" size="icon"
+              className={`h-12 w-12 rounded-full ${isMicMuted ? "bg-destructive/20 text-destructive" : "bg-accent/50"}`}
+              onClick={onToggleMic}>
+              {isMicMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
-            {type === "video" && (
-              <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-accent/50 hover:bg-accent">
-                <Video className="h-5 w-5" />
+            {isVideo && (
+              <Button variant="ghost" size="icon"
+                className={`h-12 w-12 rounded-full ${isCameraOff ? "bg-destructive/20 text-destructive" : "bg-accent/50"}`}
+                onClick={onToggleCamera}>
+                {isCameraOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
               </Button>
             )}
-            <Button size="icon" className="h-14 w-14 rounded-full bg-destructive hover:bg-destructive/90" onClick={onClose}>
+            <Button size="icon" className="h-14 w-14 rounded-full bg-destructive hover:bg-destructive/90" onClick={onEndCall}>
               <PhoneOff className="h-6 w-6 text-destructive-foreground" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-accent/50 hover:bg-accent">
+            <Button variant="ghost" size="icon"
+              className={`h-12 w-12 rounded-full ${isScreenSharing ? "bg-primary/20 text-primary" : "bg-accent/50"}`}
+              onClick={isScreenSharing ? onStopScreenShare : onStartScreenShare}>
               <Monitor className="h-5 w-5" />
             </Button>
+            {callState === "connected" && (
+              <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-accent/50" onClick={onStartCoBrowse}>
+                <ExternalLink className="h-5 w-5" />
+              </Button>
+            )}
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ─── Incoming Call Overlay ─── */
+function IncomingCallOverlay({ callState, callInfo, onAccept, onReject }: {
+  callState: CallState; callInfo: CallInfo | null; onAccept: () => void; onReject: () => void;
+}) {
+  if (callState !== "ringing" || !callInfo || callInfo.direction !== "incoming") return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="flex flex-col items-center rounded-2xl bg-card p-8 shadow-2xl"
+      >
+        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+          <Avatar className="h-24 w-24 mb-4">
+            <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
+              {(callInfo.remoteUserName || "?").slice(0, 2)}
+            </AvatarFallback>
+          </Avatar>
+        </motion.div>
+        <h3 className="text-xl font-semibold mb-1">{callInfo.remoteUserName || "User"}</h3>
+        <p className="text-sm text-muted-foreground mb-8">
+          {callInfo.callType === "video" ? "Відеодзвінок..." : "Аудіодзвінок..."}
+        </p>
+        <div className="flex gap-6">
+          <Button size="icon" className="h-16 w-16 rounded-full bg-destructive hover:bg-destructive/90" onClick={onReject}>
+            <PhoneOff className="h-7 w-7 text-destructive-foreground" />
+          </Button>
+          <Button size="icon" className="h-16 w-16 rounded-full bg-green-500 hover:bg-green-600" onClick={onAccept}>
+            <Phone className="h-7 w-7 text-white" />
+          </Button>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -608,8 +765,7 @@ function ForwardModal({ msg, conversations, onClose }: { msg: Message | null; co
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };

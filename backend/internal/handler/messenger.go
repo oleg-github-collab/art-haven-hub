@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -19,13 +20,15 @@ import (
 
 type MessengerHandler struct {
 	messengerService *service.MessengerService
+	callService      *service.CallService
 	hub              *ws.Hub
 	jwtManager       *jwt.Manager
 }
 
-func NewMessengerHandler(messengerService *service.MessengerService, hub *ws.Hub, jwtManager *jwt.Manager) *MessengerHandler {
+func NewMessengerHandler(messengerService *service.MessengerService, callService *service.CallService, hub *ws.Hub, jwtManager *jwt.Manager) *MessengerHandler {
 	return &MessengerHandler{
 		messengerService: messengerService,
+		callService:      callService,
 		hub:              hub,
 		jwtManager:       jwtManager,
 	}
@@ -53,11 +56,85 @@ func (h *MessengerHandler) WebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := ws.NewClient(claims.UserID, conn, h.hub)
+	client.SetOnMessage(h.handleCallSignaling)
 	h.hub.Register(client)
 
 	ctx := context.Background()
 	go client.WritePump(ctx)
 	client.ReadPump(ctx)
+}
+
+// handleCallSignaling dispatches WebRTC and call signaling messages.
+func (h *MessengerHandler) handleCallSignaling(ctx context.Context, client *ws.Client, msg ws.WSMessage) {
+	switch msg.Type {
+	case "call_initiate":
+		var p struct {
+			CalleeID       uuid.UUID `json:"callee_id"`
+			ConversationID uuid.UUID `json:"conversation_id"`
+			CallType       string    `json:"call_type"`
+		}
+		if json.Unmarshal(msg.Payload, &p) != nil {
+			return
+		}
+		if err := h.callService.InitiateCall(ctx, client.UserID, p.CalleeID, p.ConversationID, p.CallType); err != nil {
+			slog.Debug("call_initiate error", "error", err, "user_id", client.UserID)
+		}
+
+	case "call_accept":
+		var p struct {
+			CallID uuid.UUID `json:"call_id"`
+		}
+		if json.Unmarshal(msg.Payload, &p) != nil {
+			return
+		}
+		if err := h.callService.AcceptCall(ctx, p.CallID, client.UserID); err != nil {
+			slog.Debug("call_accept error", "error", err, "user_id", client.UserID)
+		}
+
+	case "call_reject":
+		var p struct {
+			CallID uuid.UUID `json:"call_id"`
+			Reason string    `json:"reason"`
+		}
+		if json.Unmarshal(msg.Payload, &p) != nil {
+			return
+		}
+		if err := h.callService.RejectCall(ctx, p.CallID, client.UserID, p.Reason); err != nil {
+			slog.Debug("call_reject error", "error", err, "user_id", client.UserID)
+		}
+
+	case "call_end":
+		var p struct {
+			CallID uuid.UUID `json:"call_id"`
+		}
+		if json.Unmarshal(msg.Payload, &p) != nil {
+			return
+		}
+		if err := h.callService.EndCall(ctx, p.CallID, client.UserID); err != nil {
+			slog.Debug("call_end error", "error", err, "user_id", client.UserID)
+		}
+
+	case "webrtc_offer", "webrtc_answer", "ice_candidate":
+		var p struct {
+			CallID uuid.UUID `json:"call_id"`
+		}
+		if json.Unmarshal(msg.Payload, &p) != nil {
+			return
+		}
+		h.callService.RelaySignaling(client.UserID, p.CallID, msg.Type, msg.Payload)
+
+	case "cobrowse_start", "cobrowse_navigate", "cobrowse_stop":
+		var p struct {
+			CallID uuid.UUID `json:"call_id"`
+		}
+		if json.Unmarshal(msg.Payload, &p) != nil {
+			return
+		}
+		h.callService.RelayCoBrowse(client.UserID, p.CallID, msg.Type, msg.Payload)
+
+	default:
+		slog.Debug("ws unknown message type", "type", msg.Type, "user_id", client.UserID)
+	}
 }
 
 func (h *MessengerHandler) CreateConversation(w http.ResponseWriter, r *http.Request) {
@@ -296,4 +373,47 @@ func (h *MessengerHandler) ForwardMessage(w http.ResponseWriter, r *http.Request
 	}
 
 	response.Created(w, msgs)
+}
+
+// --- Calls ---
+
+func (h *MessengerHandler) GetCallHistory(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	limit, offset := parsePagination(r)
+	calls, err := h.callService.GetCallHistory(r.Context(), userID, limit, offset)
+	if err != nil {
+		response.AppError(w, err)
+		return
+	}
+
+	response.OK(w, calls)
+}
+
+func (h *MessengerHandler) GetConversationCallHistory(w http.ResponseWriter, r *http.Request) {
+	userID, _ := middleware.GetUserID(r.Context())
+	_ = userID
+
+	convID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid conversation ID")
+		return
+	}
+
+	limit, offset := parsePagination(r)
+	calls, err := h.callService.GetConversationCalls(r.Context(), convID, limit, offset)
+	if err != nil {
+		response.AppError(w, err)
+		return
+	}
+
+	response.OK(w, calls)
+}
+
+func (h *MessengerHandler) GetICEServers(w http.ResponseWriter, r *http.Request) {
+	response.OK(w, h.callService.GetICEServers())
 }

@@ -64,14 +64,9 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-2xl">
       <div className="container flex h-14 items-center justify-between gap-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary shadow-md group-hover:shadow-lg transition-shadow">
-            <Palette className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div className="hidden sm:flex flex-col leading-none">
-            <span className="text-base font-bold font-serif tracking-tight">{t.common.platform_name}</span>
-            <span className="text-[10px] text-muted-foreground font-sans -mt-0.5">{t.common.platform_subtitle}</span>
-          </div>
+        <Link to="/" className="flex items-center gap-1.5 group">
+          <span className="text-xl font-bold font-serif tracking-tight text-primary">Inner</span>
+          <span className="text-xl font-bold font-serif tracking-tight">Garden</span>
         </Link>
 
         {/* Desktop Nav */}

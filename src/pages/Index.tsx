@@ -1,13 +1,10 @@
-import { useRef, lazy, Suspense } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Users, Megaphone, Calendar, ShoppingBag, MessageCircle, Video, Star, Sparkles } from "lucide-react";
+import { ArrowRight, Users, Megaphone, Calendar, ShoppingBag, MessageCircle, Video, Star, Sparkles, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n";
-import { useHeroScroll } from "@/components/hero/useHeroScroll";
-import { useMousePosition } from "@/components/hero/useMousePosition";
-
-const HeroScene = lazy(() => import("@/components/hero/HeroScene"));
+import UnicornScene from "unicornstudio-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -29,7 +26,6 @@ const scaleReveal = {
 
 export default function Index() {
   const { t } = useLanguage();
-  const heroRef = useRef<HTMLElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
@@ -38,8 +34,19 @@ export default function Index() {
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ).current;
 
-  const { scrollProgress, textOpacity, textY } = useHeroScroll(heroRef);
-  const { mouse, update: mouseUpdate } = useMousePosition();
+  // Remove Unicorn Studio watermark via MutationObserver
+  useEffect(() => {
+    const removeWatermark = () => {
+      document.querySelectorAll('[data-us-project] a').forEach((el) => {
+        const href = (el as HTMLAnchorElement).href || '';
+        if (href.includes('unicorn')) el.remove();
+      });
+    };
+    removeWatermark();
+    const observer = new MutationObserver(removeWatermark);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   // Section parallax
   const { scrollYProgress: featuresProgress } = useScroll({ target: featuresRef, offset: ["start end", "end start"] });
@@ -69,22 +76,27 @@ export default function Index() {
     { type: "seek", author: "Дмитро Л.", title: "Потрібна упаковка та доставка 12 картин", tags: ["логістика", "доставка"], city: "Мадрид" },
   ];
 
+  const heroContentRef = useRef<HTMLDivElement>(null);
+
+  const scrollToContent = useCallback(() => {
+    heroContentRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
   return (
     <>
-      {/* Hero — full-width WebGL gradient background */}
-      <section ref={heroRef} className="relative overflow-hidden min-h-[85vh] lg:min-h-[90vh]">
-        {/* WebGL background */}
+      {/* Hero — WebGL visual (full-screen on mobile, background on desktop) */}
+      <section className="relative overflow-hidden h-[100svh] lg:min-h-[90vh] lg:h-auto">
+        {/* Unicorn Studio WebGL background */}
         <div className="absolute inset-0">
           {reducedMotion ? (
             <div className="w-full h-full hero-gradient" />
           ) : (
-            <Suspense fallback={<div className="w-full h-full hero-gradient" />}>
-              <HeroScene
-                scrollProgress={scrollProgress}
-                mouse={mouse}
-                mouseUpdate={mouseUpdate}
-              />
-            </Suspense>
+            <UnicornScene
+              projectId="aHP30hKm4lEg8gO0qX26"
+              sdkUrl="/unicornStudio.local.js"
+              width="100%"
+              height="100%"
+            />
           )}
         </div>
 
@@ -117,22 +129,21 @@ export default function Index() {
           </div>
         )}
 
-        {/* Text content overlay */}
-        <div className="container relative z-10 py-24 lg:py-32">
+        {/* Desktop: text overlay (hidden on mobile) */}
+        <div className="container relative z-10 py-24 lg:py-32 hidden lg:block">
           <motion.div
             initial="hidden"
             animate="visible"
-            className="max-w-xl"
-            style={{ opacity: textOpacity, y: textY }}
+            className="max-w-xl rounded-2xl bg-background/60 backdrop-blur-md p-8 lg:p-10"
           >
-            <motion.div variants={fadeUp} custom={0} className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-semibold text-primary backdrop-blur-sm">
+            <motion.div variants={fadeUp} custom={0} className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               {t.home.hero_badge}
             </motion.div>
-            <motion.h1 variants={fadeUp} custom={1} className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl xl:text-7xl">
+            <motion.h1 variants={fadeUp} custom={1} className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl xl:text-7xl hero-text-shadow">
               {t.home.hero_title_1}<span className="text-gradient">{t.home.hero_title_highlight}</span>{t.home.hero_title_2}
             </motion.h1>
-            <motion.p variants={fadeUp} custom={2} className="mb-8 text-lg leading-relaxed text-muted-foreground sm:text-xl">
+            <motion.p variants={fadeUp} custom={2} className="mb-8 text-lg leading-relaxed text-foreground/80 sm:text-xl">
               {t.home.hero_desc}
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="flex flex-wrap gap-3">
@@ -149,10 +160,49 @@ export default function Index() {
           </motion.div>
         </div>
 
-        {/* Scroll indicator */}
+        {/* Mobile: "Start" button + scroll indicator (hidden on desktop) */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-between py-safe lg:hidden pointer-events-none">
+          {/* Top spacer for navbar */}
+          <div />
+
+          {/* Center CTA pill */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="pointer-events-auto"
+          >
+            <button
+              onClick={scrollToContent}
+              className="flex items-center gap-2 rounded-full bg-background/70 backdrop-blur-lg border border-border/50 px-6 py-3 text-sm font-semibold shadow-lg active:scale-95 transition-transform"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              {t.home.hero_badge}
+            </button>
+          </motion.div>
+
+          {/* Bottom scroll hint */}
+          <motion.button
+            onClick={scrollToContent}
+            className="pointer-events-auto flex flex-col items-center gap-2 pb-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+          >
+            <span className="text-xs font-medium text-foreground/60">{t.home.hero_scroll || "Scroll"}</span>
+            <motion.div
+              animate={{ y: [0, 6, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ChevronDown className="h-5 w-5 text-foreground/40" />
+            </motion.div>
+          </motion.button>
+        </div>
+
+        {/* Desktop scroll indicator */}
         {!reducedMotion && (
           <motion.div
-            className="absolute bottom-8 left-1/2 -translate-x-1/2"
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:block"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.5 }}
@@ -170,6 +220,40 @@ export default function Index() {
             </motion.div>
           </motion.div>
         )}
+      </section>
+
+      {/* Mobile hero content — appears below WebGL on scroll */}
+      <section ref={heroContentRef} className="lg:hidden border-t border-border">
+        <div className="container py-12">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            className="max-w-lg mx-auto text-center"
+          >
+            <motion.div variants={fadeUp} custom={0} className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              {t.home.hero_badge}
+            </motion.div>
+            <motion.h1 variants={fadeUp} custom={1} className="mb-5 text-3xl font-bold leading-tight sm:text-4xl">
+              {t.home.hero_title_1}<span className="text-gradient">{t.home.hero_title_highlight}</span>{t.home.hero_title_2}
+            </motion.h1>
+            <motion.p variants={fadeUp} custom={2} className="mb-7 text-base leading-relaxed text-muted-foreground sm:text-lg">
+              {t.home.hero_desc}
+            </motion.p>
+            <motion.div variants={fadeUp} custom={3} className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button size="lg" className="group w-full sm:w-auto" asChild>
+                <Link to="/signup">
+                  {t.home.cta_register}
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+                <Link to="/board">{t.home.hero_cta_board}</Link>
+              </Button>
+            </motion.div>
+          </motion.div>
+        </div>
       </section>
 
       {/* Features */}

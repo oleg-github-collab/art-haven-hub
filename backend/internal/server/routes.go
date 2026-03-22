@@ -54,6 +54,8 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 	promotionRepo := repository.NewPromotionRepo(db)
 	subscriptionRepo := repository.NewSubscriptionRepo(db)
 	searchRepo := repository.NewSearchRepo(db)
+	callRepo := repository.NewCallRepo(db)
+	socialHubRepo := repository.NewSocialHubRepo(db)
 
 	// WebSocket Hub
 	wsHub := ws.NewHub(rdb)
@@ -66,8 +68,10 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 	orderService := service.NewOrderService(orderRepo, cartRepo, artworkRepo, cfg.StripeSuccessURL, cfg.StripeCancelURL)
 	feedService := service.NewFeedService(feedRepo)
 	messengerService := service.NewMessengerService(messengerRepo, wsHub)
+	callService := service.NewCallService(callRepo, messengerRepo, wsHub, cfg.CallTimeout, cfg.STUNServers, cfg.TURNServers, cfg.TURNUsername, cfg.TURNPassword)
 	translationService := service.NewTranslationService(artworkRepo, cfg.OpenAIKey)
 	embeddingService := service.NewEmbeddingService(cfg.OpenAIKey)
+	socialHubService := service.NewSocialHubService(socialHubRepo)
 
 	// Handlers
 	healthH := handler.NewHealthHandler(db, rdb)
@@ -78,7 +82,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 	orderH := handler.NewOrderHandler(orderService)
 	webhookH := handler.NewWebhookHandler(orderService, cfg.StripeWebhookSecret)
 	feedH := handler.NewFeedHandler(feedService)
-	messengerH := handler.NewMessengerHandler(messengerService, wsHub, jwtManager)
+	messengerH := handler.NewMessengerHandler(messengerService, callService, wsHub, jwtManager)
 	boardH := handler.NewBoardHandler(boardRepo)
 	eventH := handler.NewEventHandler(eventRepo)
 	blogH := handler.NewBlogHandler(blogRepo)
@@ -88,6 +92,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 	promotionH := handler.NewPromotionHandler(promotionRepo, cfg.StripeSuccessURL, cfg.StripeCancelURL)
 	subscriptionH := handler.NewSubscriptionHandler(subscriptionRepo, userRepo, cfg.StripeProPriceID, cfg.StripeGalleryPriceID, cfg.StripeSuccessURL, cfg.StripeCancelURL)
 	searchH := handler.NewSearchHandler(searchRepo, embeddingService)
+	socialHubH := handler.NewSocialHubHandler(socialHubService)
 
 	// Health checks
 	r.Get("/health", healthH.Health)
@@ -126,6 +131,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 		r.Get("/subscriptions/plans", subscriptionH.GetPlans)
 		r.Get("/search", searchH.Search)
 		r.Get("/artworks/{id}/similar", searchH.SimilarArtworks)
+		r.Get("/social/workflows/public", socialHubH.ListPublicWorkflows)
 
 		// --- Protected routes ---
 		r.Group(func(r chi.Router) {
@@ -232,6 +238,45 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 			r.Put("/conversations/{id}/read", messengerH.MarkRead)
 			r.Put("/conversations/{id}/pin", messengerH.PinConversation)
 			r.Put("/conversations/{id}/mute", messengerH.MuteConversation)
+
+			// Calls
+			r.Get("/calls/history", messengerH.GetCallHistory)
+			r.Get("/calls/ice-servers", messengerH.GetICEServers)
+			r.Get("/conversations/{id}/calls", messengerH.GetConversationCallHistory)
+
+			// Social Hub — Accounts
+			r.Get("/social/accounts", socialHubH.GetAccounts)
+			r.Post("/social/accounts", socialHubH.ConnectAccount)
+			r.Delete("/social/accounts/{platform}", socialHubH.DisconnectAccount)
+			r.Put("/social/accounts/auto-post", socialHubH.UpdateAutoPost)
+
+			// Social Hub — Scheduled Posts / Calendar / Queue
+			r.Get("/social/posts", socialHubH.ListPosts)
+			r.Post("/social/posts", socialHubH.CreatePost)
+			r.Get("/social/posts/{id}", socialHubH.GetPost)
+			r.Put("/social/posts/{id}", socialHubH.UpdatePost)
+			r.Delete("/social/posts/{id}", socialHubH.DeletePost)
+			r.Post("/social/posts/{id}/duplicate", socialHubH.DuplicatePost)
+			r.Post("/social/posts/{id}/retry", socialHubH.RetryPost)
+			r.Get("/social/queue", socialHubH.GetQueue)
+			r.Delete("/social/queue/completed", socialHubH.ClearCompleted)
+
+			// Social Hub — Campaigns
+			r.Get("/social/campaigns", socialHubH.ListCampaigns)
+			r.Post("/social/campaigns", socialHubH.CreateCampaign)
+			r.Get("/social/campaigns/{id}", socialHubH.GetCampaign)
+			r.Put("/social/campaigns/{id}", socialHubH.UpdateCampaign)
+			r.Delete("/social/campaigns/{id}", socialHubH.DeleteCampaign)
+
+			// Social Hub — Workflows
+			r.Get("/social/workflows", socialHubH.ListWorkflows)
+			r.Post("/social/workflows", socialHubH.CreateWorkflow)
+			r.Get("/social/workflows/{id}", socialHubH.GetWorkflow)
+			r.Put("/social/workflows/{id}", socialHubH.UpdateWorkflow)
+			r.Delete("/social/workflows/{id}", socialHubH.DeleteWorkflow)
+
+			// Social Hub — Stats
+			r.Get("/social/stats", socialHubH.GetStats)
 		})
 
 		// --- Public follows ---
