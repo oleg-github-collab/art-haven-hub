@@ -61,7 +61,7 @@ export default function Navbar() {
     : user?.handle?.[0]?.toUpperCase() || "U";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md will-change-transform">
       <div className="container flex h-14 items-center justify-between gap-3">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-1.5 group">
@@ -77,17 +77,11 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 to={item.href}
-                className="relative px-3 py-1.5 text-sm font-medium transition-colors rounded-lg"
+                className={`relative px-3 py-1.5 text-sm font-medium transition-colors rounded-lg ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
-                <span className={isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}>
-                  {item.label}
-                </span>
+                {item.label}
                 {isActive && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="absolute inset-x-1 -bottom-[13px] h-0.5 rounded-full bg-primary"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
+                  <span className="absolute inset-x-1 -bottom-[13px] h-0.5 rounded-full bg-primary" />
                 )}
               </Link>
             );
@@ -230,7 +224,7 @@ export default function Navbar() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-border/60 lg:hidden bg-background/95 backdrop-blur-xl"
+            className="overflow-hidden border-t border-border/60 lg:hidden bg-background/95 backdrop-blur-sm"
           >
             <nav className="container flex flex-col gap-0.5 py-3">
               {navItems.map((item) => (

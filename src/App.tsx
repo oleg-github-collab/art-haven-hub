@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,34 +10,45 @@ import { LanguageProvider } from "./i18n";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CookieBanner from "./components/CookieBanner";
-import Index from "./pages/Index";
-import BoardPage from "./pages/BoardPage";
-import ArtistsPage from "./pages/ArtistsPage";
-import EventsPage from "./pages/EventsPage";
-import MarketPage from "./pages/MarketPage";
-import ProductPage from "./pages/ProductPage";
-import CartPage from "./pages/CartPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import FeedPage from "./pages/FeedPage";
-import MessengerPage from "./pages/MessengerPage";
-import UserProfilePage from "./pages/UserProfilePage";
-import PricingPage from "./pages/PricingPage";
-import ArtistDashboardPage from "./pages/ArtistDashboardPage";
-import BlogPage from "./pages/BlogPage";
-import AboutPage from "./pages/AboutPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import CookiesPage from "./pages/CookiesPage";
-import RefundsPage from "./pages/RefundsPage";
-import HelpPage from "./pages/HelpPage";
-import LoginPage from "./pages/LoginPage";
-import SignUpPage from "./pages/SignUpPage";
-import RoomVisualizerPage from "./pages/RoomVisualizerPage";
-import PaymentSuccessPage from "./pages/PaymentSuccessPage";
-import PaymentErrorPage from "./pages/PaymentErrorPage";
-import WorkflowBuilderPage from "./pages/WorkflowBuilderPage";
-import SocialHubPage from "./pages/SocialHubPage";
-import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
+
+// Lazy-loaded pages — each becomes a separate chunk
+const Index = lazy(() => import("./pages/Index"));
+const BoardPage = lazy(() => import("./pages/BoardPage"));
+const ArtistsPage = lazy(() => import("./pages/ArtistsPage"));
+const EventsPage = lazy(() => import("./pages/EventsPage"));
+const MarketPage = lazy(() => import("./pages/MarketPage"));
+const ProductPage = lazy(() => import("./pages/ProductPage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const FeedPage = lazy(() => import("./pages/FeedPage"));
+const MessengerPage = lazy(() => import("./pages/MessengerPage"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const ArtistDashboardPage = lazy(() => import("./pages/ArtistDashboardPage"));
+const BlogPage = lazy(() => import("./pages/BlogPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const CookiesPage = lazy(() => import("./pages/CookiesPage"));
+const RefundsPage = lazy(() => import("./pages/RefundsPage"));
+const HelpPage = lazy(() => import("./pages/HelpPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SignUpPage = lazy(() => import("./pages/SignUpPage"));
+const RoomVisualizerPage = lazy(() => import("./pages/RoomVisualizerPage"));
+const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
+const PaymentErrorPage = lazy(() => import("./pages/PaymentErrorPage"));
+const WorkflowBuilderPage = lazy(() => import("./pages/WorkflowBuilderPage"));
+const SocialHubPage = lazy(() => import("./pages/SocialHubPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
 
 const queryClient = new QueryClient();
 
@@ -49,6 +61,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route element={<Layout />}>
               {/* Public routes */}
@@ -85,6 +98,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           <CookieBanner />
         </BrowserRouter>
       </TooltipProvider>

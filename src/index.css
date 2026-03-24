@@ -102,6 +102,11 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
@@ -139,6 +144,20 @@
   .hero-text-shadow {
     text-shadow: 0 2px 16px hsl(0 0% 0% / 0.25), 0 1px 4px hsl(0 0% 0% / 0.15);
   }
+  .will-change-transform {
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
+  }
+}
+
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+  33% { transform: translateY(-15px) translateX(8px) scale(1.03); }
+  66% { transform: translateY(-8px) translateX(-5px) scale(1.05); }
 }
 
 /* Hide Unicorn Studio watermark */

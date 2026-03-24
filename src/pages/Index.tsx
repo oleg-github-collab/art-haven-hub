@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Users, Megaphone, Calendar, ShoppingBag, MessageCircle, Video, Star, Sparkles, ChevronDown } from "lucide-react";
@@ -33,6 +33,16 @@ export default function Index() {
   const reducedMotion = useRef(
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ).current;
+
+  // Disable parallax on mobile for GPU performance
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  const useParallax = !reducedMotion && isDesktop;
 
   // Remove Unicorn Studio watermark via MutationObserver
   useEffect(() => {
@@ -100,32 +110,12 @@ export default function Index() {
           )}
         </div>
 
-        {/* Floating particles overlay */}
+        {/* Floating particles overlay — CSS-animated for GPU performance */}
         {!reducedMotion && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full bg-primary/5"
-                style={{
-                  width: 80 + i * 40,
-                  height: 80 + i * 40,
-                  left: `${15 + i * 14}%`,
-                  top: `${20 + (i % 3) * 25}%`,
-                }}
-                animate={{
-                  y: [0, -20 - i * 5, 0],
-                  x: [0, 10 + i * 3, 0],
-                  scale: [1, 1.05, 1],
-                }}
-                transition={{
-                  duration: 6 + i * 1.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: i * 0.8,
-                }}
-              />
-            ))}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block" aria-hidden="true">
+            <div className="absolute rounded-full bg-primary/5" style={{ width: 100, height: 100, left: '15%', top: '20%', animation: 'float-particle 7s ease-in-out infinite' }} />
+            <div className="absolute rounded-full bg-primary/5" style={{ width: 160, height: 160, left: '45%', top: '45%', animation: 'float-particle 9s ease-in-out infinite 1s' }} />
+            <div className="absolute rounded-full bg-primary/5" style={{ width: 200, height: 200, left: '70%', top: '25%', animation: 'float-particle 11s ease-in-out infinite 2s' }} />
           </div>
         )}
 
@@ -174,7 +164,7 @@ export default function Index() {
           >
             <button
               onClick={scrollToContent}
-              className="flex items-center gap-2 rounded-full bg-background/70 backdrop-blur-lg border border-border/50 px-6 py-3 text-sm font-semibold shadow-lg active:scale-95 transition-transform"
+              className="flex items-center gap-2 rounded-full bg-background/70 backdrop-blur-sm border border-border/50 px-6 py-3 text-sm font-semibold shadow-lg active:scale-95 transition-transform"
             >
               <Sparkles className="h-4 w-4 text-primary" />
               {t.home.hero_badge}
@@ -257,8 +247,8 @@ export default function Index() {
       </section>
 
       {/* Features */}
-      <section ref={featuresRef} className="py-20 lg:py-28 overflow-hidden">
-        <motion.div className="container" style={{ y: reducedMotion ? 0 : featuresY }}>
+      <section ref={featuresRef} className="py-20 lg:py-28 overflow-hidden cv-auto">
+        <motion.div className="container" style={{ y: useParallax ? featuresY : 0 }}>
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -295,8 +285,8 @@ export default function Index() {
       </section>
 
       {/* Announcements Preview */}
-      <section ref={boardRef} className="border-t border-border bg-card py-20 lg:py-28 overflow-hidden">
-        <motion.div className="container" style={{ y: reducedMotion ? 0 : boardY }}>
+      <section ref={boardRef} className="border-t border-border bg-card py-20 lg:py-28 overflow-hidden cv-auto">
+        <motion.div className="container" style={{ y: useParallax ? boardY : 0 }}>
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -352,10 +342,10 @@ export default function Index() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 lg:py-28">
+      <section className="py-20 lg:py-28 cv-auto">
         <div className="container" ref={ctaRef}>
           <motion.div
-            style={{ scale: reducedMotion ? 1 : ctaScale, opacity: reducedMotion ? 1 : ctaOpacity }}
+            style={{ scale: useParallax ? ctaScale : 1, opacity: useParallax ? ctaOpacity : 1 }}
             className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-10 text-center card-shadow sm:p-14 relative overflow-hidden"
           >
             {/* Decorative glow */}
