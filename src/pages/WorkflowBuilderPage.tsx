@@ -7,7 +7,7 @@ import {
   BookTemplate, X, Check, Info, Workflow, Settings2,
   Copy, MoreHorizontal, Layers, FileText, Video,
   Eye, Send, AlertTriangle, CheckCircle2, Loader2,
-  ZoomIn, ZoomOut, Maximize,
+  ZoomIn, ZoomOut, Maximize, TestTube,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/context";
+import { useWorkflows, useCreateWorkflow, useUpdateWorkflow } from "@/hooks/useSocialHub";
+import { useExecuteWorkflow, useTestWorkflow } from "@/hooks/useArtflow";
+import ExecutionPanel from "@/components/artflow/ExecutionPanel";
+import NodeConfigPanel from "@/components/artflow/NodeConfigPanel";
+import AIAssistantChat from "@/components/artflow/AIAssistantChat";
+import GhostWizard from "@/components/artflow/GhostWizard";
 
 /* ─── Node Type Definitions ─── */
 interface WorkflowNode {
@@ -306,7 +312,16 @@ export default function WorkflowBuilderPage() {
   const [sidebarTab, setSidebarTab] = useState("nodes");
   const [isRunning, setIsRunning] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [savedWorkflowId, setSavedWorkflowId] = useState<string | null>(null);
+  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [wizardDone, setWizardDone] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // API hooks for real execution
+  const createWorkflowMut = useCreateWorkflow();
+  const updateWorkflowMut = useUpdateWorkflow();
+  const executeWorkflowMut = useExecuteWorkflow();
+  const testWorkflowMut = useTestWorkflow();
 
   const addNode = useCallback((type: string, label: string, icon: string) => {
     const id = `${type}_${Date.now()}`;
@@ -361,28 +376,96 @@ export default function WorkflowBuilderPage() {
     toast({ title: wf.template_saved, description: workflowName });
   }, [workflowName, nodes, connections, toast, wf]);
 
-  const runWorkflow = useCallback(() => {
+  const saveWorkflow = useCallback(async () => {
+    if (!workflowName.trim()) return null;
+    const payload = {
+      name: workflowName,
+      nodes: JSON.stringify(nodes),
+      connections: JSON.stringify(connections),
+      trigger_type: "manual",
+    };
+    try {
+      if (savedWorkflowId) {
+        await updateWorkflowMut.mutateAsync({ id: savedWorkflowId, ...payload });
+        return savedWorkflowId;
+      } else {
+        const result = await createWorkflowMut.mutateAsync(payload);
+        setSavedWorkflowId(result.id);
+        return result.id;
+      }
+    } catch {
+      toast({ title: "Failed to save workflow", variant: "destructive" });
+      return null;
+    }
+  }, [workflowName, nodes, connections, savedWorkflowId, createWorkflowMut, updateWorkflowMut, toast]);
+
+  const runWorkflow = useCallback(async () => {
     if (nodes.length === 0) {
       toast({ title: wf.empty_workflow, variant: "destructive" });
       return;
     }
     setIsRunning(true);
-    // Simulate sequential execution
-    nodes.forEach((node, i) => {
-      setTimeout(() => {
-        setNodes(prev => prev.map((n, j) => j === i ? { ...n, status: "running" } : n));
-      }, i * 800);
-      setTimeout(() => {
-        setNodes(prev => prev.map((n, j) => j === i ? { ...n, status: Math.random() > 0.9 ? "error" : "done" } : n));
-        if (i === nodes.length - 1) {
+    try {
+      // Save first, then execute
+      const wfId = await saveWorkflow();
+      if (!wfId) {
+        // Fallback to simulated execution if no name set
+        nodes.forEach((node, i) => {
+          setTimeout(() => setNodes(prev => prev.map((n, j) => j === i ? { ...n, status: "running" } : n)), i * 800);
           setTimeout(() => {
-            setIsRunning(false);
-            toast({ title: wf.workflow_started, description: `${nodes.length} ${wf.nodes_processing}` });
-          }, 400);
-        }
-      }, i * 800 + 600);
-    });
-  }, [nodes, toast, wf]);
+            setNodes(prev => prev.map((n, j) => j === i ? { ...n, status: "done" } : n));
+            if (i === nodes.length - 1) setTimeout(() => setIsRunning(false), 400);
+          }, i * 800 + 600);
+        });
+        toast({ title: wf.workflow_started, description: `${nodes.length} ${wf.nodes_processing}` });
+        return;
+      }
+      const exec = await executeWorkflowMut.mutateAsync(wfId);
+      setExecutionId(exec.id);
+      toast({ title: wf.workflow_started, description: `${nodes.length} ${wf.nodes_processing}` });
+    } catch {
+      toast({ title: "Execution failed", variant: "destructive" });
+    } finally {
+      setIsRunning(false);
+    }
+  }, [nodes, saveWorkflow, executeWorkflowMut, toast, wf]);
+
+  const testWorkflow = useCallback(async () => {
+    if (nodes.length === 0) return;
+    const wfId = await saveWorkflow();
+    if (!wfId) return;
+    try {
+      const exec = await testWorkflowMut.mutateAsync(wfId);
+      setExecutionId(exec.id);
+      toast({ title: "Test started" });
+    } catch {
+      toast({ title: "Test failed", variant: "destructive" });
+    }
+  }, [nodes, saveWorkflow, testWorkflowMut, toast]);
+
+  const updateNodeConfig = useCallback((nodeId: string, config: Record<string, any>) => {
+    setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, config } : n));
+  }, []);
+
+  const deleteConnection = useCallback((from: string, to: string) => {
+    setConnections(prev => prev.filter(c => !(c.from === from && c.to === to)));
+  }, []);
+
+  const handleApplyAIWorkflow = useCallback((aiNodes: unknown[], aiConnections: unknown[]) => {
+    const newNodes = (aiNodes as any[]).map((n, i) => ({
+      ...n,
+      id: `${n.type}_${Date.now()}_${i}`,
+      status: "idle" as const,
+      position: n.position || { x: 60 + i * 260, y: 150 },
+      config: n.config || {},
+    }));
+    setNodes(newNodes);
+    const newConns = (aiConnections as any[]).map(c => ({
+      from: newNodes[c.fromIdx]?.id || c.from || "",
+      to: newNodes[c.toIdx]?.id || c.to || "",
+    })).filter(c => c.from && c.to);
+    setConnections(newConns);
+  }, []);
 
   // Validation warnings
   const warnings = useMemo(() => {
@@ -435,6 +518,10 @@ export default function WorkflowBuilderPage() {
             <Button size="sm" variant="outline" className="gap-1.5 rounded-full" onClick={() => setSaveDialog(true)}>
               <Save className="h-4 w-4" />
               <span className="hidden sm:inline">{wf.save}</span>
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-full" onClick={testWorkflow} disabled={isRunning || nodes.length === 0 || testWorkflowMut.isPending}>
+              {testWorkflowMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube className="h-4 w-4" />}
+              <span className="hidden sm:inline">Test</span>
             </Button>
             <Button size="sm" className="gap-1.5 rounded-full" onClick={runWorkflow} disabled={isRunning || nodes.length === 0}>
               {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
@@ -655,148 +742,38 @@ export default function WorkflowBuilderPage() {
           {selectedNode && (() => {
             const node = nodes.find(n => n.id === selectedNode);
             if (!node) return null;
-            const nodeConns = connections.filter(c => c.from === node.id || c.to === node.id);
             return (
-              <motion.div
-                initial={{ x: 300, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 300, opacity: 0 }}
-                className="w-72 border-l border-border bg-card/40 backdrop-blur-sm overflow-y-auto shrink-0 p-4"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold">{wf.node_settings}</h3>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => setSelectedNode(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 rounded-xl border border-border bg-background/60 p-3">
-                    <span className="text-2xl">{node.icon}</span>
-                    <div>
-                      <p className="text-sm font-semibold">{node.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{node.type}</p>
-                    </div>
-                  </div>
-
-                  {/* Connections info */}
-                  {nodeConns.length > 0 && (
-                    <div className="rounded-xl border border-border/50 bg-muted/20 p-2.5">
-                      <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">З'єднання ({nodeConns.length})</p>
-                      {nodeConns.map(c => {
-                        const other = nodes.find(n => n.id === (c.from === node.id ? c.to : c.from));
-                        return other ? (
-                          <div key={`${c.from}-${c.to}`} className="flex items-center gap-1.5 py-0.5">
-                            <span className="text-xs">{c.from === node.id ? "→" : "←"}</span>
-                            <span className="text-[10px]">{other.icon}</span>
-                            <span className="text-[10px] truncate">{other.label}</span>
-                            <button
-                              onClick={() => setConnections(prev => prev.filter(cx => !(cx.from === c.from && cx.to === c.to)))}
-                              className="ml-auto text-muted-foreground hover:text-destructive"
-                            >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                          </div>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-
-                  {/* Platform-specific config */}
-                  {["instagram", "tiktok"].includes(node.type) && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium">{wf.post_format}</label>
-                      <Select defaultValue="post">
-                        <SelectTrigger className="rounded-xl text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="post">Post</SelectItem>
-                          <SelectItem value="reels">Reels</SelectItem>
-                          <SelectItem value="story">Story</SelectItem>
-                          <SelectItem value="carousel">Carousel</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {node.type === "etsy" && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium">Printful інтеграція</label>
-                        <Switch />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium">{wf.product_type}</label>
-                        <Select defaultValue="print">
-                          <SelectTrigger className="rounded-xl text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="print">Art Print</SelectItem>
-                            <SelectItem value="canvas">Canvas</SelectItem>
-                            <SelectItem value="poster">Poster</SelectItem>
-                            <SelectItem value="tshirt">T-Shirt</SelectItem>
-                            <SelectItem value="mug">Mug</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-
-                  {node.type === "ai_adapt" && (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium">{wf.tone}</label>
-                        <Select defaultValue="professional">
-                          <SelectTrigger className="rounded-xl text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="professional">Professional</SelectItem>
-                            <SelectItem value="casual">Casual</SelectItem>
-                            <SelectItem value="artistic">Artistic</SelectItem>
-                            <SelectItem value="minimal">Minimal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium">{wf.auto_crop}</label>
-                        <Switch defaultChecked />
-                      </div>
-                    </div>
-                  )}
-
-                  {node.type === "schedule" && (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium">{wf.schedule_time}</label>
-                        <Input type="datetime-local" className="rounded-xl text-xs" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium">{wf.repeat}</label>
-                        <Switch />
-                      </div>
-                    </div>
-                  )}
-
-                  {node.type === "ai_hashtags" && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium">{wf.max_hashtags}</label>
-                      <Input type="number" defaultValue="15" className="rounded-xl text-xs" />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">{wf.caption}</label>
-                    <Textarea placeholder={wf.caption_placeholder} className="rounded-xl text-xs resize-none" rows={3} />
-                  </div>
-
-                  {/* Delete node */}
-                  <Button variant="outline" size="sm" className="w-full rounded-full gap-1.5 text-destructive hover:bg-destructive/10" onClick={() => deleteNode(node.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Видалити вузол
-                  </Button>
-                </div>
-              </motion.div>
+              <NodeConfigPanel
+                node={node}
+                connections={connections}
+                allNodes={nodes}
+                onUpdateConfig={updateNodeConfig}
+                onDeleteNode={deleteNode}
+                onDeleteConnection={deleteConnection}
+                onClose={() => setSelectedNode(null)}
+              />
             );
           })()}
         </AnimatePresence>
       </div>
+
+      {/* Execution Panel */}
+      <ExecutionPanel executionId={executionId} onClose={() => setExecutionId(null)} />
+
+      {/* AI Assistant */}
+      <AIAssistantChat
+        onApplyWorkflow={handleApplyAIWorkflow}
+        currentNodes={nodes}
+        currentConnections={connections}
+      />
+
+      {/* Ghost Wizard (first visit) */}
+      {!wizardDone && (
+        <GhostWizard
+          onComplete={() => setWizardDone(true)}
+          onAddNode={(type) => addNode(type, type.replace(/_/g, " "), NODE_CATEGORIES.flatMap(c => c.nodes).find(n => n.type === type)?.icon || "?")}
+        />
+      )}
 
       {/* Templates Dialog */}
       <Dialog open={templateDialog} onOpenChange={setTemplateDialog}>

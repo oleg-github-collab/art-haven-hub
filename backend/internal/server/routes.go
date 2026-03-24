@@ -10,6 +10,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"github.com/art-haven-hub/backend/internal/config"
+	"github.com/art-haven-hub/backend/internal/connector"
 	"github.com/art-haven-hub/backend/internal/handler"
 	"github.com/art-haven-hub/backend/internal/middleware"
 	"github.com/art-haven-hub/backend/internal/pkg/jwt"
@@ -73,6 +74,37 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 	embeddingService := service.NewEmbeddingService(cfg.OpenAIKey)
 	socialHubService := service.NewSocialHubService(socialHubRepo)
 
+	// ArtFlow — Connector Registry + Service
+	connectorRepo := repository.NewConnectorRepo(db)
+	connectorRegistry := connector.NewRegistry()
+	connectorRegistry.Register("openai", connector.NewOpenAIFactory())
+	connectorRegistry.Register("cloudinary", connector.NewCloudinaryFactory())
+	connectorRegistry.Register("pinterest", connector.NewPinterestFactory())
+	connectorRegistry.Register("etsy", connector.NewEtsyFactory())
+	connectorRegistry.Register("shopify", connector.NewShopifyFactory())
+	connectorRegistry.Register("printful", connector.NewPrintfulFactory())
+	artflowService := service.NewArtflowService(connectorRepo, socialHubRepo, connectorRegistry, rdb, cfg.OpenAIKey)
+
+	oauthConfigs := map[string]*service.OAuthConfig{
+		"pinterest": {
+			ClientID: cfg.PinterestAppID, ClientSecret: cfg.PinterestAppSecret,
+			RedirectURI: cfg.PinterestRedirectURI,
+			AuthURL: "https://api.pinterest.com/oauth/", TokenURL: "https://api.pinterest.com/v5/oauth/token",
+			Scopes: []string{"boards:read", "pins:read", "pins:write"},
+		},
+		"etsy": {
+			ClientID: cfg.EtsyAPIKey, ClientSecret: cfg.EtsyAPISecret,
+			RedirectURI: cfg.EtsyRedirectURI,
+			AuthURL: "https://www.etsy.com/oauth/connect", TokenURL: "https://api.etsy.com/v3/public/oauth/token",
+			Scopes: []string{"listings_r", "listings_w", "shops_r"},
+		},
+		"shopify": {
+			ClientID: cfg.ShopifyAPIKey, ClientSecret: cfg.ShopifyAPISecret,
+			AuthURL: "https://accounts.shopify.com/oauth/authorize", TokenURL: "https://accounts.shopify.com/oauth/token",
+			Scopes: []string{"read_products", "write_products"},
+		},
+	}
+
 	// Handlers
 	healthH := handler.NewHealthHandler(db, rdb)
 	authH := handler.NewAuthHandler(authService)
@@ -93,6 +125,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 	subscriptionH := handler.NewSubscriptionHandler(subscriptionRepo, userRepo, cfg.StripeProPriceID, cfg.StripeGalleryPriceID, cfg.StripeSuccessURL, cfg.StripeCancelURL)
 	searchH := handler.NewSearchHandler(searchRepo, embeddingService)
 	socialHubH := handler.NewSocialHubHandler(socialHubService)
+	artflowH := handler.NewArtflowHandler(artflowService, oauthConfigs)
 
 	// Health checks
 	r.Get("/health", healthH.Health)
@@ -277,6 +310,36 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 
 			// Social Hub — Stats
 			r.Get("/social/stats", socialHubH.GetStats)
+
+			// ArtFlow — Connectors
+			r.Get("/artflow/connectors", artflowH.ListConnectors)
+			r.Post("/artflow/connectors", artflowH.AddConnector)
+			r.Delete("/artflow/connectors/{platform}", artflowH.RemoveConnector)
+			r.Post("/artflow/connectors/{platform}/test", artflowH.TestConnector)
+
+			// ArtFlow — OAuth
+			r.Get("/artflow/oauth/{platform}/url", artflowH.GetOAuthURL)
+			r.Post("/artflow/oauth/{platform}/callback", artflowH.OAuthCallback)
+
+			// ArtFlow — Workflow Execution
+			r.Post("/artflow/workflows/{id}/execute", artflowH.ExecuteWorkflow)
+			r.Post("/artflow/workflows/{id}/test", artflowH.TestWorkflow)
+			r.Get("/artflow/executions", artflowH.ListExecutions)
+			r.Get("/artflow/executions/{id}", artflowH.GetExecution)
+			r.Post("/artflow/executions/{id}/cancel", artflowH.CancelExecution)
+
+			// ArtFlow — Webhooks
+			r.Get("/artflow/webhooks", artflowH.ListWebhooks)
+			r.Post("/artflow/webhooks", artflowH.CreateWebhook)
+			r.Delete("/artflow/webhooks/{id}", artflowH.DeleteWebhook)
+
+			// ArtFlow — AI Assistant
+			r.Post("/artflow/ai/generate-workflow", artflowH.AIGenerateWorkflow)
+			r.Post("/artflow/ai/suggest-config", artflowH.AISuggestConfig)
+			r.Post("/artflow/ai/explain", artflowH.AIExplain)
+
+			// ArtFlow — Platform info
+			r.Get("/artflow/platforms", artflowH.GetPlatforms)
 		})
 
 		// --- Public follows ---
@@ -285,6 +348,9 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) http.Handler 
 
 		// --- Stripe Webhook ---
 		r.Post("/webhooks/stripe", webhookH.StripeWebhook)
+
+		// --- ArtFlow Incoming Webhook (public) ---
+		r.Post("/webhooks/artflow/{id}", artflowH.IncomingWebhook)
 
 		// Placeholder: return API info
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {

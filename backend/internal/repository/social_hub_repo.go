@@ -237,11 +237,12 @@ func (r *SocialHubRepo) DeleteCampaign(ctx context.Context, id uuid.UUID) error 
 
 func (r *SocialHubRepo) CreateWorkflow(ctx context.Context, w *model.Workflow) error {
 	query := `
-		INSERT INTO workflows (user_id, name, description, icon, nodes, connections, is_public)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO workflows (user_id, name, description, icon, nodes, connections, is_public, trigger_type, trigger_config, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, created_at, updated_at`
 	return r.db.QueryRowxContext(ctx, query,
 		w.UserID, w.Name, w.Description, w.Icon, w.Nodes, w.Connections, w.IsPublic,
+		w.TriggerType, w.TriggerConfig, w.IsActive,
 	).Scan(&w.ID, &w.CreatedAt, &w.UpdatedAt)
 }
 
@@ -277,12 +278,20 @@ func (r *SocialHubRepo) ListPublicWorkflows(ctx context.Context) ([]model.Workfl
 func (r *SocialHubRepo) UpdateWorkflow(ctx context.Context, w *model.Workflow) error {
 	query := `
 		UPDATE workflows
-		SET name = $1, description = $2, icon = $3, nodes = $4, connections = $5, is_public = $6
-		WHERE id = $7
+		SET name = $1, description = $2, icon = $3, nodes = $4, connections = $5, is_public = $6,
+		    trigger_type = $7, trigger_config = $8, is_active = $9
+		WHERE id = $10
 		RETURNING updated_at`
 	return r.db.QueryRowxContext(ctx, query,
-		w.Name, w.Description, w.Icon, w.Nodes, w.Connections, w.IsPublic, w.ID,
+		w.Name, w.Description, w.Icon, w.Nodes, w.Connections, w.IsPublic,
+		w.TriggerType, w.TriggerConfig, w.IsActive, w.ID,
 	).Scan(&w.UpdatedAt)
+}
+
+func (r *SocialHubRepo) UpdateWorkflowRunStats(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE workflows SET last_run_at = NOW(), run_count = run_count + 1 WHERE id = $1`, id)
+	return err
 }
 
 func (r *SocialHubRepo) DeleteWorkflow(ctx context.Context, id uuid.UUID) error {

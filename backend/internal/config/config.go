@@ -59,6 +59,20 @@ type Config struct {
 	TURNPassword string        `env:"TURN_PASSWORD"`
 	CallTimeout  time.Duration `env:"CALL_TIMEOUT" envDefault:"60s"`
 
+	// ArtFlow Connectors
+	CloudinaryCloudName  string `env:"CLOUDINARY_CLOUD_NAME"`
+	CloudinaryAPIKey     string `env:"CLOUDINARY_API_KEY"`
+	CloudinaryAPISecret  string `env:"CLOUDINARY_API_SECRET"`
+	PinterestAppID       string `env:"PINTEREST_APP_ID"`
+	PinterestAppSecret   string `env:"PINTEREST_APP_SECRET"`
+	PinterestRedirectURI string `env:"PINTEREST_REDIRECT_URI"`
+	EtsyAPIKey           string `env:"ETSY_API_KEY"`
+	EtsyAPISecret        string `env:"ETSY_API_SECRET"`
+	EtsyRedirectURI      string `env:"ETSY_REDIRECT_URI"`
+	ShopifyAPIKey        string `env:"SHOPIFY_API_KEY"`
+	ShopifyAPISecret     string `env:"SHOPIFY_API_SECRET"`
+	PrintfulAPIKey       string `env:"PRINTFUL_API_KEY"`
+
 	// Rate Limiting
 	RateLimitRPS   float64 `env:"RATE_LIMIT_RPS" envDefault:"100"`
 	RateLimitBurst int     `env:"RATE_LIMIT_BURST" envDefault:"200"`

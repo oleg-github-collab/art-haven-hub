@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/art-haven-hub/backend/internal/config"
+	"github.com/art-haven-hub/backend/internal/connector"
 	"github.com/art-haven-hub/backend/internal/db"
 	"github.com/art-haven-hub/backend/internal/migrate"
 	"github.com/art-haven-hub/backend/internal/repository"
@@ -76,6 +77,20 @@ func main() {
 	// Start embedding worker
 	embeddingWorker := worker.NewEmbeddingWorker(pgDB, rdb, searchRepo, embeddingSvc)
 	embeddingWorker.Start(workerCtx)
+
+	// Start workflow executor worker
+	connectorRegistry := connector.NewRegistry()
+	connectorRegistry.Register("openai", connector.NewOpenAIFactory())
+	connectorRegistry.Register("cloudinary", connector.NewCloudinaryFactory())
+	connectorRegistry.Register("pinterest", connector.NewPinterestFactory())
+	connectorRegistry.Register("etsy", connector.NewEtsyFactory())
+	connectorRegistry.Register("shopify", connector.NewShopifyFactory())
+	connectorRegistry.Register("printful", connector.NewPrintfulFactory())
+
+	connectorRepo := repository.NewConnectorRepo(pgDB)
+	socialHubRepo := repository.NewSocialHubRepo(pgDB)
+	workflowExecutor := worker.NewWorkflowExecutor(pgDB, rdb, connectorRepo, socialHubRepo, connectorRegistry, nil)
+	workflowExecutor.Start(workerCtx)
 
 	// Start server
 	srv := server.New(cfg, pgDB, rdb)

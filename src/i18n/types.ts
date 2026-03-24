@@ -621,4 +621,33 @@ export interface Translations {
     total_in_queue: string;
     next_post: string;
   };
+  artflow: {
+    connectors_title: string;
+    connectors_desc: string;
+    connect: string;
+    disconnect: string;
+    test_connection: string;
+    connected: string;
+    expired: string;
+    error: string;
+    save_connect: string;
+    connect_oauth: string;
+    execution_title: string;
+    execution_running: string;
+    execution_completed: string;
+    execution_failed: string;
+    cancel_execution: string;
+    waiting_start: string;
+    ai_welcome: string;
+    ai_placeholder: string;
+    ai_explain: string;
+    apply_canvas: string;
+    applied: string;
+    wizard_welcome: string;
+    wizard_connectors: string;
+    wizard_source: string;
+    wizard_ai: string;
+    wizard_destination: string;
+    wizard_run: string;
+  };
 }

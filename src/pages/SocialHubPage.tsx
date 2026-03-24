@@ -5,7 +5,7 @@ import {
   Globe, Package, Link2, Unlink, CheckCircle2,
   Eye, Heart, TrendingUp, Plus,
   Zap, Calendar, Send, Clock,
-  Workflow, ChevronRight,
+  Workflow, ChevronRight, Plug,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,8 @@ import { useLanguage } from "@/i18n/context";
 import { Link } from "react-router-dom";
 import ContentCalendar from "@/components/dashboard/ContentCalendar";
 import AutoPostQueue from "@/components/dashboard/AutoPostQueue";
+import ConnectorSetup from "@/components/artflow/ConnectorSetup";
+import AIAssistantChat from "@/components/artflow/AIAssistantChat";
 import {
   useSocialAccounts, useConnectAccount, useDisconnectAccount, useUpdateAutoPost,
   useCampaigns, useSocialHubStats,
@@ -195,6 +197,10 @@ export default function SocialHubPage() {
               <Zap className="h-3.5 w-3.5" />
               {sh.autopost_tab || "Автопост"}
             </TabsTrigger>
+            <TabsTrigger value="connectors" className="gap-1.5 rounded-full px-4 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Plug className="h-3.5 w-3.5" />
+              Connectors
+            </TabsTrigger>
           </TabsList>
 
           {/* Accounts Tab */}
@@ -358,8 +364,20 @@ export default function SocialHubPage() {
           <TabsContent value="autopost" className="mt-0">
             <AutoPostQueue labels={autoPostLabels} />
           </TabsContent>
+
+          {/* Connectors Tab */}
+          <TabsContent value="connectors" className="mt-0">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold mb-1">Platform Connectors</h3>
+              <p className="text-xs text-muted-foreground">Connect your accounts to enable real workflow automation.</p>
+            </div>
+            <ConnectorSetup />
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* AI Assistant floating chat */}
+      <AIAssistantChat />
     </div>
   );
 }

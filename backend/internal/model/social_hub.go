@@ -60,14 +60,19 @@ type Campaign struct {
 // ─── Workflow ───────────────────────────────────────────────
 
 type Workflow struct {
-	ID          uuid.UUID       `db:"id" json:"id"`
-	UserID      uuid.UUID       `db:"user_id" json:"user_id"`
-	Name        string          `db:"name" json:"name"`
-	Description string          `db:"description" json:"description"`
-	Icon        string          `db:"icon" json:"icon"`
-	Nodes       json.RawMessage `db:"nodes" json:"nodes"`
-	Connections json.RawMessage `db:"connections" json:"connections"`
-	IsPublic    bool            `db:"is_public" json:"is_public"`
-	CreatedAt   time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time       `db:"updated_at" json:"updated_at"`
+	ID            uuid.UUID       `db:"id" json:"id"`
+	UserID        uuid.UUID       `db:"user_id" json:"user_id"`
+	Name          string          `db:"name" json:"name"`
+	Description   string          `db:"description" json:"description"`
+	Icon          string          `db:"icon" json:"icon"`
+	Nodes         json.RawMessage `db:"nodes" json:"nodes"`
+	Connections   json.RawMessage `db:"connections" json:"connections"`
+	IsPublic      bool            `db:"is_public" json:"is_public"`
+	TriggerType   string          `db:"trigger_type" json:"trigger_type"`
+	TriggerConfig *json.RawMessage `db:"trigger_config" json:"trigger_config,omitempty"`
+	IsActive      bool            `db:"is_active" json:"is_active"`
+	LastRunAt     *time.Time      `db:"last_run_at" json:"last_run_at,omitempty"`
+	RunCount      int             `db:"run_count" json:"run_count"`
+	CreatedAt     time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time       `db:"updated_at" json:"updated_at"`
 }
